@@ -6,22 +6,29 @@ import matplotlib.pyplot as plt
 
 my_absolute_dirpath = os.path.abspath(os.path.dirname(__file__))
 
-data_in = np.loadtxt("{0}/data/1.in".format(my_absolute_dirpath))
+data_in = np.loadtxt("{0}/data/2.in".format(my_absolute_dirpath))
 y_dat = np.array(data_in[:,-1]).T
-print(y_dat)
-print(data_in)
+x_dat = np.array(data_in[:,0:-1])
 
-data_in_transpose = data_in.T
-print(data_in_transpose)
+row_count = (len(data_in))
+ones = [1] * row_count
+x_dat = np.insert(x_dat, 0, ones, axis=1)
 
-multiply_1 = np.matmul(data_in_transpose, data_in)
-print(multiply_1)
+#print(x_dat)
+#print(y_dat)
+#print(data_in)
 
-inverse = np.linalg.inv(np.matmul(data_in_transpose, data_in))
-print(inverse)
+transpose = x_dat.T
+#print(transpose)
 
-multiply_2 = np.matmul(inverse, data_in_transpose)
-print(multiply_2)
+multiply_1 = np.matmul(transpose, x_dat)
+#print(multiply_1)
+
+inverse = np.linalg.inv(np.matmul(transpose, x_dat))
+#print(inverse)
+
+multiply_2 = np.matmul(inverse, transpose)
+#print(multiply_2)
 
 multiply_3 = np.matmul(multiply_2, y_dat)
 print(multiply_3)
