@@ -1,6 +1,11 @@
-import os, json, argparse, sys
-import numpy as np, matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
+'''
+PHYS 449 -- Fall 2021
+Assignment 1
+    Name: Quinton Tennant
+    ID: 20717788
+'''
+
+import os, json, argparse, numpy as np
 
 def linearRegression(input_data):
     # Slicing the data into the first M-1 columns and the final column
@@ -27,6 +32,7 @@ def linearRegression(input_data):
     return multiply_3
 
 def gradDescent(input_data, learning_rate, num_iter):
+    # Our first "guess" of w_0
     w_0 = np.zeros(len(input_data[0]))
 
     # Slicing the data into the first M-1 columns and the final column
@@ -43,32 +49,79 @@ def gradDescent(input_data, learning_rate, num_iter):
     # Initializing iteration count for loop
     iteration = 0
     while iteration <= num_iter:
-        #print(iteration)
-        a = np.matmul(x_dat, w_0)
-        L = a - y_dat
+        # Changing our guess
+        first = np.matmul(x_dat, w_0)
+        # Calculating the loss we incur by our decision
+        loss = first - y_dat
+        # Calculating the normalized gradient
+        grad = np.matmul(transpose_x, loss)/(len(input_data))
+        # Updating w_0 through each iteration
+        w_0 = w_0 - (learning_rate*grad)
 
-        gradient = np.matmul(transpose_x, L)/(len(input_data))
-
-        w_0 = w_0 - (learning_rate*gradient)
+        # Conditional that if our gradient reaches a sufficiently small value then exit loop early
+        if (np.isclose(grad.all(), 0) and iteration > 1):
+            print("Breaking at iteration {0} with gradient sufficiently small".format(iteration, grad))
+            break
+        
+        # incrementing our iteration
         iteration+=1
     return(w_0)
 
-n = 2
 
-# Getting the absolute file path from the relative
-my_absolute_dirpath = os.path.abspath(os.path.dirname(__file__))
+if __name__ == '__main__':
+    # Command line arguments
+    parser = argparse.ArgumentParser(description='Assignment 1: Tennant, Quinton (20717788)')
+    parser.add_argument('in_file', default='data/1.in', help='The relative path of a file containing the input data. Defaults to \'data/1.in\'')
+    parser.add_argument('json_file', default='data/1.json', help='The relative path of a file containing the json parameters. Defaults to \'data/1.json\'')
 
-# Reading in the data and running the linear regression (Need to change to getting from command line input)
-data_in = np.loadtxt("{0}/data/{1}.in".format(my_absolute_dirpath, n))
+    # Receiving the command line arguments
+    args = parser.parse_args()
+    in_file = args.in_file
+    json_file = args.json_file
 
+    # Getting the absolute file path from the relative
+    my_absolute_dirpath = os.path.abspath(os.path.dirname(__file__))
 
-json_input_file = "{0}/data/{1}.json".format(my_absolute_dirpath, n)
+    # Checking if the in file exists
+    if os.path.isfile("{0}/{1}".format(my_absolute_dirpath, in_file)):
+        # Reading in the data and running the linear regression
+        data_in = np.loadtxt("{0}/{1}".format(my_absolute_dirpath, in_file))
 
-with open(json_input_file, 'r') as file:
-    inputs = json.load(file)
+        # Getting path and filename for output file usage
+        filename = (((in_file).split('.')[0]).split('/'))[-1]
+        pathname = (((in_file).split('.')[0]).split('/'))[-2]
+        out_file = "{0}/{1}/{2}.out".format(my_absolute_dirpath, pathname, filename)
 
-    learning_rate = inputs['learning rate']
-    num_iter = inputs['num iter']
+        # Checking if the json file exists
+        if os.path.isfile("{0}/{1}".format(my_absolute_dirpath, json_file)):
+            # Reading the json file inputs
+            json_input_file = "{0}/{1}".format(my_absolute_dirpath, json_file)
 
-print("w_analytic: {0}".format(linearRegression(data_in)))
-print("w_GD: {0}".format(gradDescent(data_in, learning_rate, num_iter)))
+            # Reading the json parameters
+            with open(json_input_file, 'r') as file:
+                paras = json.load(file)
+                learning_rate = paras['learning rate']
+                num_iter = paras['num iter']
+
+            # The outputs from running our two functions
+            # LINEAR REGRESSION
+            lin_reg_output = linearRegression(data_in)
+            print("w_analytic: {0}".format(lin_reg_output))
+            
+            # GRADIENT DESCENT
+            grad_des_output = gradDescent(data_in, learning_rate, num_iter)
+            print("w_GD: {0}".format(grad_des_output))
+
+            # Write the results to the .out file
+            with open(out_file, 'w') as out_file:
+                for i in lin_reg_output:
+                    out_file.write("{0}\n".format(i))
+                out_file.writelines("\n")
+                for j in grad_des_output:
+                    out_file.write("{0}\n".format(j))
+
+        else:
+            print('Filepath {0}/{1} does not exist'.format(my_absolute_dirpath, json_file))
+
+    else:
+        print('Filepath {0}/{1} does not exist'.format(my_absolute_dirpath, in_file))
