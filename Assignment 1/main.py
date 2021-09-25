@@ -34,6 +34,7 @@ def linearRegression(input_data):
 def gradDescent(input_data, learning_rate, num_iter):
     # Our first "guess" of w_0
     w_0 = np.zeros(len(input_data[0]))
+    update = np.zeros(len(input_data))
 
     # Slicing the data into the first M-1 columns and the final column
     y_dat = np.array(input_data[:,-1]).T
@@ -49,10 +50,10 @@ def gradDescent(input_data, learning_rate, num_iter):
     # Initializing iteration count for loop
     iteration = 0
     while iteration <= num_iter:
-        # Changing our guess
-        first = np.matmul(x_dat, w_0)
+        # Creating a matrix that is updated with each iteration
+        update = np.matmul(x_dat, w_0)
         # Calculating the loss we incur by our decision
-        loss = first - y_dat
+        loss = update - y_dat
         # Calculating the normalized gradient
         grad = np.matmul(transpose_x, loss)/(len(input_data))
         # Updating w_0 through each iteration
