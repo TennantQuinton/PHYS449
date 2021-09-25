@@ -64,6 +64,7 @@ def gradDescent(input_data, learning_rate, num_iter):
             print("Breaking at iteration {0} with gradient sufficiently small".format(iteration, grad))
             break
         
+        
         # incrementing our iteration
         iteration+=1
     return(w_0)
