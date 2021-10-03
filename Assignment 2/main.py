@@ -6,17 +6,19 @@ Assignment 2
 '''
 
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
 
 def digit_id(input_data):
     stop_iterating_at = (len(input_data)) - 3000
 
     index = 0
     for row in input_data:
-        #print(index)
-        print(row[0:-1])
-        #print(row[-1])
-        #print()
-        plt.imshow(row[0:-1])
+        data_array = (np.array(np.split((row[0:-1]), 14)))
+        plt.imshow(data_array, cmap='Greys')
         plt.show()
         if (index == stop_iterating_at):
             break
