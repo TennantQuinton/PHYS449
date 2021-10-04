@@ -84,10 +84,9 @@ def training(load_training, load_testing):
     log_probs = model(images)
     loss = criterion(log_probs, labels)
 
-    print('Before backward pass: \n', model[0].weight.grad)
-    loss.backward()
-    print('After backward pass: \n', model[0].weight.grad)
-    
+    epoch_max = 15
+    for epoch in np.arange(0, epoch_max+1, 1):
+        print()
 
 if __name__ == '__main__':
     # Command line arguments
