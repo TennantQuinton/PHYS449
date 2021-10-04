@@ -28,9 +28,9 @@ def digit_id(input_data):
 
     # Reshape to the correct dimensions for analysis
     training_data = training_data.reshape((-1, 1, 14, 14))
-    training_labels = training_labels.reshape(training_labels.shape[0], 1)
+    training_labels = training_labels.reshape(training_labels.shape[0])
     testing_data = testing_data.reshape((-1, 1, 14, 14))
-    testing_labels = testing_labels.reshape(testing_labels.shape[0], 1)
+    testing_labels = testing_labels.reshape(testing_labels.shape[0])
 
     # Convert to PyTorch tensor and normalize
     training_data_tens = T.tensor(training_data)/255.0
@@ -40,41 +40,13 @@ def digit_id(input_data):
 
     training_tensor = T.utils.data.TensorDataset(training_data_tens, training_labels_tens)
     testing_tensor = T.utils.data.TensorDataset(testing_data_tens, testing_labels_tens)
-    load_training = T.utils.data.DataLoader(training_tensor, batch_size = 64, num_workers = 2, shuffle = True)
-    load_testing = T.utils.data.DataLoader(testing_tensor, batch_size = 64, num_workers = 2, shuffle = True)
+    load_training = T.utils.data.DataLoader(training_tensor, batch_size = 64, shuffle = True)
+    load_testing = T.utils.data.DataLoader(testing_tensor, batch_size = 64, shuffle = True)
 
-    #print(training_data_tens.shape)
-    #print(training_labels_tens.shape)
+    dataiter = iter(load_training)
+    images, labels = dataiter.next()
 
-    #for index in range(1, 61):
-    #    plt.subplot(6, 10, index)
-    #    plt.axis('off')
-    #    plt.imshow(training_data_tens[index].numpy().squeeze(), cmap='gray_r')
-    #plt.show()
-
-    epoch_tot = 10
-    learning_rate = 0.001
-
-    input_size = 196
-    classes = 5
-    hidden_layers = 100
-
-    model = nn.Sequential(nn.Linear(input_size, hidden_layers),
-                        nn.ReLU(),
-                        nn.Linear(hidden_layers, hidden_layers),
-                        nn.ReLU(),
-                        nn.Linear(hidden_layers, classes),
-                        nn.LogSoftmax(dim=1))
     
-    optimizer = T.optim.Adam(model.parameters(), lr=learning_rate)
-    criterion = nn.CrossEntropyLoss()
-
-    samples=len(load_training)
-
-    for epoch in np.arange(0, epoch_tot+1, 1):
-        for images, labels in enumerate(load_training):
-            
-
 
 if __name__ == '__main__':
     # Command line arguments
