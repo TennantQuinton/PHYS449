@@ -6,7 +6,7 @@ Assignment 2
 '''
 
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt, pandas as pd
-import torch as T, torch.nn as nn, torchvision as TV, torchvision.transforms as tf
+import torch as T, torch.nn as nn, torchvision as TV, torchvision.transforms as tf, torch.optim as optim
 from torchvision.utils import make_grid
 
 def digit_id(input_data):
@@ -38,6 +38,7 @@ def digit_id(input_data):
     testing_data_tens = T.tensor(testing_data)/255.0
     testing_labels_tens = T.tensor(testing_labels)
 
+    # Convert to tensors and load the data so that PyTorch can use it effectively
     training_tensor = T.utils.data.TensorDataset(training_data_tens, training_labels_tens)
     testing_tensor = T.utils.data.TensorDataset(testing_data_tens, testing_labels_tens)
     load_training = T.utils.data.DataLoader(training_tensor, batch_size = 64, shuffle = True)
@@ -46,7 +47,16 @@ def digit_id(input_data):
     dataiter = iter(load_training)
     images, labels = dataiter.next()
 
-    
+    input_size = 14*14 # =196
+    hidden_layer = 100
+    output_size = 5
+
+    model = nn.Sequential(nn.Linear(input_size, hidden_layer),
+                            nn.ReLU(),
+                            nn.Linear(hidden_layer, hidden_layer),
+                            nn.ReLU(),
+                            nn.Linear(hidden_layer, output_size),
+                            nn.LogSoftmax(dim=1))
 
 if __name__ == '__main__':
     # Command line arguments
