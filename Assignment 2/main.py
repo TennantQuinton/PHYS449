@@ -79,6 +79,10 @@ def training_testing(load_training, load_testing):
     log_probs = model(images)
     loss = nn_loss(log_probs, labels)
 
+    # Initalizing lists for plotting
+    obj_vals = []
+    cross_vals = []
+
     # Loop over the number of epochs specified
     for epoch in np.arange(0, epoch_max+1, 1):
         # Intialize the total loss to be updated over loops
@@ -88,18 +92,18 @@ def training_testing(load_training, load_testing):
         for images, labels in load_training:
             images = images.view(images.shape[0], -1)       # Re-flatten the images
             optimizer.zero_grad()                           # Run the training optimizer with the set model
+
             output = model(images)                          # Find the output
             loss = nn_loss(output, labels)                  #   and the loss
+
             loss.backward()                                 # backpropogate
             optimizer.step()                                # Continue
+
             loss_total += loss.item()                       # Update the total loss
+            training_loss = loss_total/(len(load_training))  # Training loss
         
         # Print an update
-        print('Epoch [{}/{}]'.format(epoch, num_epochs)+\
-            '\tTraining Loss: {:.4f}'.format(train_val)+\
-            '\tTest Loss: {:.4f}'.format(test_val))
-        print('Epoch: {0}, Training Loss: {1}'.format(epoch, loss_total/(len(load_training))))
-
+        print('Epoch: {0}/{1},\nTraining Loss: {2}'.format(epoch, epoch_max, training_loss))
 
 
 if __name__ == '__main__':
