@@ -82,6 +82,10 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
     obj_vals = []
     cross_vals = []
 
+    # Initialize the plot
+    figure = plt.figure(figsize=(15,10))
+    plt.gca()
+
     # Loop over the number of epochs specified
     for epoch in np.arange(1, epoch_max+1, 1):
         # Intialize the total loss to be updated over loops
@@ -106,7 +110,7 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
         obj_vals.append(training_loss)
 
     # Plotting the loss over iterations
-    plt.plot(np.arange(1, epoch_max+1, 1), obj_vals)
+    plt.plot(np.arange(1, epoch_max+1, 1), obj_vals, label='Training Loss')
 
     # Initializing the variables used for finding the accuracy/loss
     num_correct, num_wrong, num_total, testing_loss = 0, 0, 0, 0
@@ -159,11 +163,9 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
     print("Model Accuracy = {0}%".format(testing_accuracy))
 
     # Plot the losses over time
-    plt.plot(np.arange(1, (len(cross_vals))+1, 1)/(len(cross_vals)/epoch_max), cross_vals)
-    plt.show()
+    plt.plot(np.arange(1, (len(cross_vals))+1, 1)/(len(cross_vals)/epoch_max), cross_vals, label='Testing Loss')
 
-    # Print update
-    print('\nAfter running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(epoch_max, obj_vals[-1], testing_accuracy, cross_vals[-1]))
+    return (epoch_max, obj_vals[-1], testing_accuracy, cross_vals[-1], figure)
 
 
 if __name__ == '__main__':
@@ -186,6 +188,12 @@ if __name__ == '__main__':
     if os.path.isfile("{0}/data/even_mnist.csv".format(my_absolute_dirpath)):
         # Reading the data from the csv file
         data_in = pd.read_csv("{0}/data/even_mnist.csv".format(my_absolute_dirpath), delimiter=' ')
+
+        # Getting path and filename for output file usage
+        filename = 'report'
+        pathname = (((in_file).split('.')[0]).split('/'))[-2]
+        out_file = "{0}/{1}/{2}.out".format(my_absolute_dirpath, pathname, filename)
+
         # Checking if our json file exists
         if os.path.isfile(json_file):
             # Open the json file
@@ -201,5 +209,22 @@ if __name__ == '__main__':
                 num_epochs = paras['number of epochs']
             # Calling the functions above
             converted_data = conversion(data_in, testing_data_size, batch_size)
-            data_rec = training_testing(converted_data[0], converted_data[1], input_size, hidden_layer_size, output_size, learning_rate, num_epochs)
-
+            digit_rec = training_testing(converted_data[0], converted_data[1], input_size, hidden_layer_size, output_size, learning_rate, num_epochs)
+            
+            # Print update
+            print('\nAfter running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(digit_rec[0], digit_rec[1], digit_rec[2], digit_rec[3]))
+            
+            # Write the results to the .out file
+            with open(out_file, 'w') as out_file:
+                out_file.write('After running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(digit_rec[0], digit_rec[1], digit_rec[2], digit_rec[3]))
+            
+            plt.title('Losses of Digit Recognition Program in Training and Testing')
+            plt.xlabel('Epoch')
+            plt.ylabel('Loss')
+            plt.legend()
+            plt.savefig("{0}/{1}/Losses.jpg".format(my_absolute_dirpath, pathname))
+            print('Plotting to {0}/{1}/Losses.jpg'.format(my_absolute_dirpath, pathname))
+        else:
+            print('Filepath {0} does not exist'.format(json_file))
+    else:
+        print('Filepath {0}/data/even_mnist.csv does not exist'.format(my_absolute_dirpath))
