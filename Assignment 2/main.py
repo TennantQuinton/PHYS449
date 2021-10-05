@@ -100,10 +100,10 @@ def training_testing(load_training, load_testing):
             optimizer.step()                                # Continue
 
             loss_total += loss.item()                       # Update the total loss
-            training_loss = loss_total/(len(load_training))  # Training loss
+            training_loss = loss_total/(len(load_training)) # Training loss
         
         # Print an update
-        print('Epoch: {0}/{1},\nTraining Loss: {2}'.format(epoch, epoch_max, training_loss))
+        print('\nEpoch: {0}/{1},\nTraining Loss: {2}'.format(epoch, epoch_max, training_loss))
 
 
 if __name__ == '__main__':
