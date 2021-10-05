@@ -105,10 +105,69 @@ def training_testing(load_training, load_testing):
         # Print an update
         print('\nEpoch: {0}/{1},\nTraining Loss: {2}'.format(epoch, epoch_max, training_loss))
 
+    # Plotting the loss over iterations
+    plt.plot(np.arange(1, epoch_max+1, 1), obj_vals)
+
+    # Initializing the variables used for finding the accuracy/loss
+    num_correct, num_total, testing_loss = 0, 0, 0
+
+    # Loop through both the images and labels in the 3000 testing dataset
+    for images, labels in load_testing:
+        # Loop through the length of each
+        for index in np.arange(0, len(labels), 1):
+            # Update the denominator
+            num_total+=1
+
+            # Find the images being used and reflatten them
+            using = images[index].view(1, 196)
+            images = images.view(images.shape[0], -1)
+
+            # Finding the log of probabilities without gradient use
+            with T.no_grad():
+                log_probs = model(using)
+
+            # Removing the log and creating a list
+            probs = T.exp(log_probs)
+            probability = list(probs.numpy()[0])
+
+            # Using our model find what it thinks the number is
+            prediction = probability.index(max(probability))
+            # What is the number actually from the labels:
+            actually = labels.numpy()[index]
+
+            # Find how far off the prediction was
+            loss = (prediction-actually)/(num_total)
+            testing_loss += loss
+
+            # Print update
+            print('\nWritten Digit: {0}, Recognized as: {1},\nTesting Loss: {2}'.format(actually, prediction, testing_loss))
+            cross_vals.append(testing_loss)
+
+            # Conditional: Find if the prediction is correct
+            if (actually == prediction):
+                # Update for accuracy usage
+                num_correct+=1
+            else:
+                ## Plot the image of what was found incorrectly (for interest)
+                #plt.imshow(images[index].numpy().squeeze(), cmap='gray_r')
+                #plt.show()
+                print('Does not match')
+    # The testing accuracy is the percentage of correct identifications
+    testing_accuracy = round(((num_correct/num_total)*100),4)
+    # Print update
+    print("Model Accuracy = {0}%".format(testing_accuracy))
+
+    # Plot the losses over time
+    plt.plot(np.arange(1, (len(cross_vals))+1, 1)/(len(cross_vals)/epoch_max), cross_vals)
+    plt.show()
+
+    # Print update
+    print('\nAfter running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(epoch_max, obj_vals[-1], testing_accuracy, cross_vals[-1]))
+
 
 if __name__ == '__main__':
     # Command line arguments
-    parser = argparse.ArgumentParser(description='Assignment 1: Tennant, Quinton (20717788)')
+    parser = argparse.ArgumentParser(description='Assignment 2: Tennant, Quinton (20717788)')
     parser.add_argument('-in_file', default='data/1.in', help='The relative path of a file containing the input data. Defaults to \'data/1.in\'')
     parser.add_argument('-json_file', default='data/1.json', help='The relative path of a file containing the json parameters. Defaults to \'data/1.json\'')
 
