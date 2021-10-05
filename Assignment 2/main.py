@@ -4,20 +4,21 @@ Assignment 2
     Name: Quinton Tennant
     ID: 20717788
 '''
-
-from operator import truediv
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt, pandas as pd
-import torch as T, torch.nn as nn, torchvision as TV, torchvision.transforms as tf, torch.optim as optim
-from torchvision.utils import make_grid
+import torch as T
+import torch.nn as nn
+import torch.optim as optim
 
-def conversion(input_data):
+def conversion(input_data, test_size, batch_size):
+    test_size = test_size
+    batch_size = batch_size
     # Training data split (take the first 26492 digits) in Pandas df format
-    training = (input_data[0:-2999])
+    training = (input_data[0:-test_size-1])
     training_data = training[training.columns[:-1]]
     training_labels = training[training.columns[-1]]
 
     # Testing data split (take the final 3000 digits) in Pandas df format
-    testing = (input_data[26491:])
+    testing = (input_data[29492-test_size-1:])
     testing_data = testing[testing.columns[:-1]]
     testing_labels = testing[testing.columns[-1]]   
 
@@ -39,8 +40,6 @@ def conversion(input_data):
     testing_data_tens = T.tensor(testing_data)/255.0
     testing_labels_tens = T.tensor(testing_labels)
 
-    batch_size = 100
-
     # Convert to tensor with both data and labels. Then load the data
     training_tensor = T.utils.data.TensorDataset(training_data_tens, training_labels_tens)
     testing_tensor = T.utils.data.TensorDataset(testing_data_tens, testing_labels_tens)
@@ -49,17 +48,17 @@ def conversion(input_data):
 
     return (load_training, load_testing)
 
-def training_testing(load_training, load_testing):
+def training_testing(load_training, load_testing, input_size, hidden_layer, output_size, learning_rate, epoch_max):
 
     dataiter = iter(load_training)
     images, labels = dataiter.next()
 
     # get inputs from json file
-    input_size = 14*14 # =196
-    hidden_layer = 100
-    output_size = 9
-    learning_rate = 0.001
-    epoch_max = 30
+    input_size = input_size*input_size #14*14 # =196
+    hidden_layer = hidden_layer #100
+    output_size = output_size #9
+    learning_rate = learning_rate #0.001
+    epoch_max = epoch_max #30
 
     # Initialize the model
     model = nn.Sequential(nn.Linear(input_size, hidden_layer),
@@ -84,7 +83,7 @@ def training_testing(load_training, load_testing):
     cross_vals = []
 
     # Loop over the number of epochs specified
-    for epoch in np.arange(0, epoch_max+1, 1):
+    for epoch in np.arange(1, epoch_max+1, 1):
         # Intialize the total loss to be updated over loops
         loss_total = 0
 
@@ -104,12 +103,13 @@ def training_testing(load_training, load_testing):
         
         # Print an update
         print('\nEpoch: {0}/{1},\nTraining Loss: {2}'.format(epoch, epoch_max, training_loss))
+        obj_vals.append(training_loss)
 
     # Plotting the loss over iterations
     plt.plot(np.arange(1, epoch_max+1, 1), obj_vals)
 
     # Initializing the variables used for finding the accuracy/loss
-    num_correct, num_total, testing_loss = 0, 0, 0
+    num_correct, num_wrong, num_total, testing_loss = 0, 0, 0, 0
 
     # Loop through both the images and labels in the 3000 testing dataset
     for images, labels in load_testing:
@@ -135,14 +135,6 @@ def training_testing(load_training, load_testing):
             # What is the number actually from the labels:
             actually = labels.numpy()[index]
 
-            # Find how far off the prediction was
-            loss = (prediction-actually)/(num_total)
-            testing_loss += loss
-
-            # Print update
-            print('\nWritten Digit: {0}, Recognized as: {1},\nTesting Loss: {2}'.format(actually, prediction, testing_loss))
-            cross_vals.append(testing_loss)
-
             # Conditional: Find if the prediction is correct
             if (actually == prediction):
                 # Update for accuracy usage
@@ -151,9 +143,18 @@ def training_testing(load_training, load_testing):
                 ## Plot the image of what was found incorrectly (for interest)
                 #plt.imshow(images[index].numpy().squeeze(), cmap='gray_r')
                 #plt.show()
+                num_wrong += 1
                 print('Does not match')
+
+            # Find how far off the prediction was
+            loss = abs(prediction-actually)/(num_total)
+            testing_loss += loss
+
+            # Print update
+            print('\nWritten Digit: {0}, Recognized as: {1},\nTesting Loss: {2}'.format(actually, prediction, testing_loss))
+            cross_vals.append(testing_loss)
     # The testing accuracy is the percentage of correct identifications
-    testing_accuracy = round(((num_correct/num_total)*100),4)
+    testing_accuracy = round(((num_correct/num_total)*100),2)
     # Print update
     print("Model Accuracy = {0}%".format(testing_accuracy))
 
@@ -168,8 +169,7 @@ def training_testing(load_training, load_testing):
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 2: Tennant, Quinton (20717788)')
-    parser.add_argument('-in_file', default='data/1.in', help='The relative path of a file containing the input data. Defaults to \'data/1.in\'')
-    parser.add_argument('-json_file', default='data/1.json', help='The relative path of a file containing the json parameters. Defaults to \'data/1.json\'')
+    parser.add_argument('json_file', default='param/parameters.json', help='The relative path of a file containing the json parameters')
 
     # Receiving the command line arguments
     args = parser.parse_args()
@@ -179,7 +179,27 @@ if __name__ == '__main__':
     # Getting the absolute file path from the relative
     my_absolute_dirpath = os.path.abspath(os.path.dirname(__file__))
 
-    data_in = pd.read_csv("{0}/{1}".format(my_absolute_dirpath, in_file), delimiter=' ')
-    converted_data = conversion(data_in)
-    training_testing(converted_data[0], converted_data[1])
+    # The direct path to the json file
+    json_file = "{0}/param/parameters.json".format(my_absolute_dirpath)
+    
+    # Checking if the csv data file exists
+    if os.path.isfile("{0}/data/even_mnist.csv".format(my_absolute_dirpath)):
+        # Reading the data from the csv file
+        data_in = pd.read_csv("{0}/data/even_mnist.csv".format(my_absolute_dirpath), delimiter=' ')
+        # Checking if our json file exists
+        if os.path.isfile(json_file):
+            # Open the json file
+            with open(json_file, 'r') as file:
+                # Getting parameters from json
+                paras = json.load(file)
+                testing_data_size = paras['testing data size']
+                batch_size = paras['batch size']
+                input_size = paras['input length']
+                hidden_layer_size = paras['hidden layer size']
+                output_size = paras['output size']
+                learning_rate = paras['learning rate']
+                num_epochs = paras['number of epochs']
+            # Calling the functions above
+            converted_data = conversion(data_in, testing_data_size, batch_size)
+            data_rec = training_testing(converted_data[0], converted_data[1], input_size, hidden_layer_size, output_size, learning_rate, num_epochs)
 
