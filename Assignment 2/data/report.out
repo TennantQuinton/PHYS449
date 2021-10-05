@@ -1,0 +1,4 @@
+After running through the 30 Epochs we found:
+	Training Loss: 0.010389340850348884
+	Testing Loss: 0.21244097068160758
+	Accuracy: 98.8%
