@@ -122,9 +122,9 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
             # Update the denominator
             num_total+=1
 
-            # Find the images being used and reflatten them
+            # Find the images being used and reflatten them (for loss)
             using = images[index].view(1, 196)
-            images = images.view(images.shape[0], -1)
+            flat_images = images.view(images.shape[0], -1)
 
             # Finding the log of probabilities without gradient use
             with T.no_grad():
@@ -157,6 +157,7 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
             # Print update
             print('\nWritten Digit: {0}, Recognized as: {1},\nTesting Loss: {2}'.format(actually, prediction, testing_loss))
             cross_vals.append(testing_loss)
+
     # The testing accuracy is the percentage of correct identifications
     testing_accuracy = round(((num_correct/num_total)*100),2)
     # Print update
@@ -171,7 +172,7 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 2: Tennant, Quinton (20717788)')
-    parser.add_argument('json_file', default='param/parameters.json', help='The relative path of a file containing the json parameters')
+    parser.add_argument('-json_file', default='param/parameters.json', help='The relative path of a file containing the json parameters')
 
     # Receiving the command line arguments
     args = parser.parse_args()
@@ -216,7 +217,7 @@ if __name__ == '__main__':
             
             # Write the results to the .out file
             with open(out_file, 'w') as out_file:
-                out_file.write('After running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(digit_rec[0], digit_rec[1], digit_rec[2], digit_rec[3]))
+                out_file.write('After running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(digit_rec[0], round(digit_rec[1], 4), round(digit_rec[2], 2), round(digit_rec[3], 4)))
             
             plt.title('Losses of Digit Recognition Program in Training and Testing')
             plt.xlabel('Epoch')
