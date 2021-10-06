@@ -10,9 +10,6 @@
 - pandas
 - PyTorch (torch, torchvision)
 
-## Parameters
-
-
 ## Running `main.py`
 
 To run `main.py`, use
