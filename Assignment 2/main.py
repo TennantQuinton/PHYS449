@@ -65,7 +65,7 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
                             nn.LogSoftmax(dim=1))
 
     # Optimizer/loss functions used for learning (Found Adam opt online)
-    optimizer = optim.Adam(model.parameters(), learning_rate)
+    optimizer = optim.SGD(model.parameters(), learning_rate, 0.9)
     nn_loss = nn.NLLLoss()
     
     # Set the data used for the images and labels within the learning
@@ -170,7 +170,7 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 2: Tennant, Quinton (20717788)')
-    parser.add_argument('json_file', default='param/parameters.json', help='The relative path of a file containing the json parameters')
+    parser.add_argument('-json_file', default='param/parameters.json', help='The relative path of a file containing the json parameters')
 
     # Receiving the command line arguments
     args = parser.parse_args()
