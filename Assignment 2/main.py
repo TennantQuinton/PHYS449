@@ -64,7 +64,7 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
                             nn.Linear(hidden_layer, output_size),
                             nn.LogSoftmax(dim=1))
 
-    # Optimizer/loss functions used for learning (Found Adam opt online)
+    # Optimizer/loss functions used for learning
     optimizer = optim.SGD(model.parameters(), learning_rate, 0.9)
     nn_loss = nn.NLLLoss()
     
