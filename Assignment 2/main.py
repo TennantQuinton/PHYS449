@@ -5,9 +5,7 @@ Assignment 2
     ID: 20717788
 '''
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt, pandas as pd
-import torch as T
-import torch.nn as nn
-import torch.optim as optim
+import torch as T, torch.nn as nn, torch.optim as optim
 
 def conversion(input_data, test_size, batch_size):
     test_size = test_size
@@ -66,10 +64,10 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
                             nn.Linear(hidden_layer, output_size),
                             nn.LogSoftmax(dim=1))
 
-    # Optimizer/loss functions used for learning
+    # Optimizer/loss functions used for learning (Found Adam opt online)
     optimizer = optim.Adam(model.parameters(), learning_rate)
     nn_loss = nn.NLLLoss()
-
+    
     # Set the data used for the images and labels within the learning
     images, labels = next(iter(load_training))
     images = images.view(images.shape[0], -1)
