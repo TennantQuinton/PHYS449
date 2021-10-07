@@ -153,7 +153,7 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
             testing_loss += loss
 
             # Print update
-            print('\nWritten Digit: {0}, Recognized as: {1},\nTesting Loss: {2}'.format(actually, prediction, testing_loss))
+            print('\nWritten Digit: {0}, Recognized as: {1},\nTesting Loss: {2},\nTesting Accuracy: {3}%'.format(actually, prediction, testing_loss, round(((num_correct/num_total)*100),2)))
             cross_vals.append(testing_loss)
 
     # The testing accuracy is the percentage of correct identifications
@@ -170,7 +170,7 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 2: Tennant, Quinton (20717788)')
-    parser.add_argument('-json_file', default='param/parameters.json', help='The relative path of a file containing the json parameters')
+    parser.add_argument('json_file', default='param/parameters.json', help='The relative path of a file containing the json parameters')
 
     # Receiving the command line arguments
     args = parser.parse_args()
