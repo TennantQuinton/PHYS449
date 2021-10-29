@@ -6,6 +6,7 @@ Assignment 3
 '''
 
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt, pandas as pd
+from numpy.core.fromnumeric import shape
 import torch as T, torch.nn as nn, torch.optim as optim
 import random as rd
 
@@ -14,17 +15,18 @@ def ode_sol(lb, ub, ntests):
         rand_x, rand_y = rd.randrange(lb*1000, ub*1000)/1000, rd.randrange(lb*1000, ub*1000)/1000
         print(rand_x, rand_y)
 
-        x_vects, y_vects = np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)), np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)))
+        x_grid, y_grid = np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)), np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)))
         x = T.Tensor(np.linspace(lb, ub, 100)[:, None])
+        print((x))
     
-        u = -y_vects/np.sqrt(x_vects**2 + y_vects**2)
+        u = -y_grid/np.sqrt(x_grid**2 + y_grid**2)
         u_lam = lambda x, y: -y/np.sqrt(x**2 + y**2)
 
-        v = x_vects/np.sqrt(x_vects**2 + y_vects**2)
+        v = x_grid/np.sqrt(x_grid**2 + y_grid**2)
         v_lam = lambda x, y: x/np.sqrt(x**2 + y**2)
 
         plt.scatter(rand_x, rand_y, color = 'red', zorder = 1)
-    plt.quiver(x_vects, y_vects, u, v, zorder = 0)
+    plt.quiver(x_grid, y_grid, u, v, zorder = 0)
     plt.show()
     
     model = nn.Sequential(
