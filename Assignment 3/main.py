@@ -15,22 +15,29 @@ def ode_sol(lb, ub, ntests):
         print(rand_x, rand_y)
 
         x_vects, y_vects = np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)), np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)))
+        x = T.Tensor(np.linspace(lb, ub, 100)[:, None])
     
-        u = -y_vects/np.sqrt(x_vects**2 + y_vects**2) #lambda x, y: -y/np.sqrt(x**2 + y**2)
-        v = x_vects/np.sqrt(x_vects**2 + y_vects**2) #lambda x, y: x/np.sqrt(x**2 + y**2)
+        u = -y_vects/np.sqrt(x_vects**2 + y_vects**2)
+        u_lam = lambda x, y: -y/np.sqrt(x**2 + y**2)
+
+        v = x_vects/np.sqrt(x_vects**2 + y_vects**2)
+        v_lam = lambda x, y: x/np.sqrt(x**2 + y**2)
 
         plt.scatter(rand_x, rand_y, color = 'red', zorder = 1)
     plt.quiver(x_vects, y_vects, u, v, zorder = 0)
     plt.show()
-
+    
     model = nn.Sequential(
         nn.Linear(1, 50), 
         nn.Sigmoid(), 
-        nn.Linear(50,1, bias=False)
+        nn.Linear(50, 2, bias=False)
     )
 
     optimizer = optim.Adam(model.parameters())
-    nn_loss = nn.CrossEntropyLoss()
+    nn_loss = nn.MSELoss()
+
+
+    
 
 
 if __name__ == '__main__':
@@ -54,5 +61,12 @@ if __name__ == '__main__':
     lower = args.lb
     upper = args.ub
     n_tests = args.n_tests
+
+    x_field = args.x_field
+    y_field = args.y_field
+    verbosity = args.v
+
+    results_out = args.res_path
+    param_in = args.param
 
     ode_sol(lower, upper, n_tests)
