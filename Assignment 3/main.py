@@ -11,13 +11,7 @@ import torch as T, torch.nn as nn, torch.optim as optim
 import random as rd
 
 def ode_solv(lb, ub, ntests):
-    model_x = nn.Sequential(
-        nn.Linear(1, 50), 
-        nn.Sigmoid(),
-        nn.Linear(50, 1, bias=False)
-    )
-
-    model_y = nn.Sequential(
+    model = nn.Sequential(
         nn.Linear(1, 50), 
         nn.Sigmoid(),
         nn.Linear(50, 1, bias=False)
@@ -30,62 +24,19 @@ def ode_solv(lb, ub, ntests):
     u_lam = lambda x, y: -(y)/np.sqrt((x)**2 + (y)**2)
     v_lam = lambda x, y: (x)/np.sqrt((x)**2 + (y)**2)
 
-    for i in np.arange(n_tests):
-        # random starting position
-        rand_x, rand_y = rd.randrange(lb*1000, ub*1000)/1000, rd.randrange(lb*1000, ub*1000)/1000
+    u_grid = u_lam(x_grid, y_grid)
+    v_grid = v_lam(x_grid, y_grid)
+    print(u_grid)
 
-        # tensor of t-points
-        X = T.tensor(np.linspace(lb, ub, 1000)).reshape((-1, 1))
-        xx_list = []
-        yy_list = []
-        for j in X:
-            optimizer_x = optim.Adam(model_x.parameters())
-            optimizer_y = optim.Adam(model_y.parameters())
+    # random starting position
+    rand_x, rand_y = rd.randrange(lb*1000, ub*1000)/1000, rd.randrange(lb*1000, ub*1000)/1000
 
-            nn_loss = nn.MSELoss()
-
-            j = (j.item())
-            X.requires_grad = True
-            
-            # trial solution of x(t) and y(t)
-            trial_x = lambda t: rand_x + t * model_x(t.float())
-            trial_y = lambda t: rand_y + t * model_y(t.float())
-
-            outputs_x = trial_x(X)
-            outputs_y = trial_y(X)
-
-            x_t = T.autograd.grad(outputs_x, X, grad_outputs=T.ones_like(outputs_x), create_graph=True)[0]
-            y_t = T.autograd.grad(outputs_y, X, grad_outputs=T.ones_like(outputs_y), create_graph=True)[0]
-
-            X_up = X.detach().numpy()
-            outputs_x_up = trial_x(X).detach().numpy()
-            outputs_y_up = trial_y(X).detach().numpy()
-            
-            loss_x = (T.mean(x_t - T.tensor(u_lam(X_up, outputs_x_up))))**2
-            loss_y = (T.mean(y_t - T.tensor(v_lam(X_up, outputs_y_up))))**2
-            
-            loss_x = nn_loss(trial_x(X), T.tensor(u_lam(X_up, outputs_x_up)))
-            loss_y = nn_loss(trial_y(X), T.tensor(u_lam(X_up, outputs_y_up)))
-            loss = (loss_x + loss_y)
-            
-            loss_x.backward()
-            optimizer_x.step()
-            loss_y.backward()
-            optimizer_y.step()
-
-        
-            with T.no_grad():
-                xx = trial_x(T.Tensor(X.float())).numpy()
-                yy = trial_y(T.Tensor(X.float())).numpy()
-                xx_list.append(xx)
-                yy_list.append(yy)
-                k = 0
-                while k < len(xx):
-                    #print(xx[k], yy[k])
-                    k+=1
-                
-        plt.plot(xx, yy)
-        plt.scatter(rand_x, rand_y, color = 'red', zorder = 1)
+    # tensor of t-points
+    X = T.tensor(np.linspace(lb, ub, 1000)).reshape((-1, 1))
+    xx_list = []
+    yy_list = []
+    
+    plt.scatter(rand_x, rand_y, color = 'red', zorder = 1)
     plt.quiver(x_grid, y_grid, u_lam(x_grid, y_grid), v_lam(x_grid, y_grid), zorder = 0)
     plt.show()
 
