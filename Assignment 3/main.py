@@ -10,55 +10,63 @@ from numpy.core.fromnumeric import shape
 import torch as T, torch.nn as nn, torch.optim as optim
 import random as rd
 
-def train_iter(x):
-    print()
-
-def slope_at(x_val, y_val):
-    u_lam = lambda x, y: -y/np.sqrt(x**2 + y**2)
-    v_lam = lambda x, y: x/np.sqrt(x**2 + y**2)
-
-    u_point = u_lam(x_val, y_val)
-    v_point = v_lam(x_val, y_val)
-
-    return T.tensor((np.array[u_lam, v_lam]).reshape((-1,1)))
-
-
-def ode_sol(lb, ub, ntests):
+def ode_solv(lb, ub, ntests):
     model = nn.Sequential(
         nn.Linear(1, 50), 
         nn.Sigmoid(),
         nn.Linear(50, 2, bias=False)
     )
+    model = model.float()
 
-    optimizer = optim.Adam(model.parameters())
-    nn_loss = nn.NLLLoss()
+    x_grid, y_grid = np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)), np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)))
+    u = -y_grid/np.sqrt(x_grid**2 + y_grid**2)
+    v = x_grid/np.sqrt(x_grid**2 + y_grid**2)
+    u_lam = lambda x, y: -(y)/np.sqrt((x)**2 + (y)**2) #-(y.detach().numpy())/np.sqrt((x.detach().numpy())**2 + (y.detach().numpy())**2)
+    v_lam = lambda x, y: (x)/np.sqrt((x)**2 + (y)**2) #(x.detach().numpy())/np.sqrt((x.detach().numpy())**2 + (y.detach().numpy())**2)
 
-    for i in np.arange(0, ntests, 1):
-        optimizer.zero_grad()
-        x_grid, y_grid = np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)), np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)))
-        u = -y_grid/np.sqrt(x_grid**2 + y_grid**2)
-        v = x_grid/np.sqrt(x_grid**2 + y_grid**2)
+    rand_x, rand_y = rd.randrange(lb*1000, ub*1000)/1000, rd.randrange(lb*1000, ub*1000)/1000
 
-        rand_x, rand_y = rd.randrange(lb*1000, ub*1000)/1000, rd.randrange(lb*1000, ub*1000)/1000
+    X = T.tensor(np.linspace(lb, ub, 10)).reshape((-1, 1))
+    
+    trial_x = lambda t: rand_x + t * model(t.float())
+    trial_y = lambda t: rand_y + t * model(t.float())
 
-        X = (np.linspace(lb, ub, 100)).reshape((-1, 1))
-        X = T.tensor(X)
-        #u_point = slope_at(rand_x, rand_y)[0]
-        #v_point = slope_at(rand_x, rand_y)[1]
-
-        trial = lambda x: rand_x + x * model(x)
-
+    for i in np.arange(100):
         X.requires_grad = True
-        outputs = trial(X)
-        trial_dt = T.autograd.grad(outputs, X, grad_outputs=T.ones_like(outputs), create_graph=True)[0]
-        loss = T.mean((trial_dt - u(X, outputs))  ** 2)
 
+        outputs_x = trial_x(X)
+        outputs_y = trial_y(X)
+        x_t = T.autograd.grad(outputs_x, X, grad_outputs=T.ones_like(outputs_x), create_graph=True)[0]
+        y_t = T.autograd.grad(outputs_y, X, grad_outputs=T.ones_like(outputs_y), create_graph=True)[0]
+
+        X_up = X.detach().numpy()
+        outputs_x_up = trial_x(X).detach().numpy()
+        outputs_y_up = trial_y(X).detach().numpy()
         
-        X = T.utils.data.TensorDataset(X, trial_dt)
-        X = T.utils.data.DataLoader(X, batch_size = 10)
-        loss = nn_loss()
+        loss_x = T.mean((x_t - T.tensor(u_lam(X_up, outputs_x_up)))**2)
+        loss_y = T.mean((y_t - T.tensor(u_lam(X_up, outputs_y_up)))**2)
 
-        plt.scatter(rand_x, rand_y, color = 'red', zorder = 1)
+        optimizer_x = optim.Adam(model.parameters())
+        optimizer_y = optim.Adam(model.parameters())
+        
+        loss_x.backward()
+        loss_y.backward()
+
+        loss_tot_x = 0
+        loss_tot_y = 0
+
+        optimizer_x.zero_grad()
+        optimizer_y.zero_grad()
+
+        optimizer_x.step()
+        optimizer_y.step()
+
+    tt = np.linspace(lb, ub, 100)[:, None]
+    with T.no_grad():
+        xx = trial_x(T.Tensor(tt)).numpy()
+        yy = trial_y(T.Tensor(tt)).numpy()
+    plt.plot(xx, yy)
+    plt.scatter(rand_x, rand_y, color = 'red', zorder = 1)
     plt.quiver(x_grid, y_grid, u, v, zorder = 0)
     plt.show()
 
@@ -95,4 +103,4 @@ if __name__ == '__main__':
     results_out = args.res_path
     param_in = args.param
 
-    ode_sol(lower, upper, n_tests)
+    ode_solv(lower, upper, n_tests)
