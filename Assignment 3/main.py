@@ -11,63 +11,82 @@ import torch as T, torch.nn as nn, torch.optim as optim
 import random as rd
 
 def ode_solv(lb, ub, ntests):
-    model = nn.Sequential(
+    model_x = nn.Sequential(
         nn.Linear(1, 50), 
         nn.Sigmoid(),
-        nn.Linear(50, 2, bias=False)
+        nn.Linear(50, 1, bias=False)
     )
-    model = model.float()
 
+    model_y = nn.Sequential(
+        nn.Linear(1, 50), 
+        nn.Sigmoid(),
+        nn.Linear(50, 1, bias=False)
+    )
+
+    # For plotting vector field
     x_grid, y_grid = np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)), np.arange(lb, ub+(abs(lb-ub)/10), (abs(lb-ub)/10)))
-    u = -y_grid/np.sqrt(x_grid**2 + y_grid**2)
-    v = x_grid/np.sqrt(x_grid**2 + y_grid**2)
-    u_lam = lambda x, y: -(y)/np.sqrt((x)**2 + (y)**2) #-(y.detach().numpy())/np.sqrt((x.detach().numpy())**2 + (y.detach().numpy())**2)
-    v_lam = lambda x, y: (x)/np.sqrt((x)**2 + (y)**2) #(x.detach().numpy())/np.sqrt((x.detach().numpy())**2 + (y.detach().numpy())**2)
 
-    rand_x, rand_y = rd.randrange(lb*1000, ub*1000)/1000, rd.randrange(lb*1000, ub*1000)/1000
+    # For finding the gradient at each point
+    u_lam = lambda x, y: -(y)/np.sqrt((x)**2 + (y)**2)
+    v_lam = lambda x, y: (x)/np.sqrt((x)**2 + (y)**2)
 
-    X = T.tensor(np.linspace(lb, ub, 10)).reshape((-1, 1))
-    
-    trial_x = lambda t: rand_x + t * model(t.float())
-    trial_y = lambda t: rand_y + t * model(t.float())
+    for i in np.arange(n_tests):
+        # random starting position
+        rand_x, rand_y = rd.randrange(lb*1000, ub*1000)/1000, rd.randrange(lb*1000, ub*1000)/1000
 
-    for i in np.arange(100):
-        X.requires_grad = True
+        # tensor of t-points
+        X = T.tensor(np.linspace(lb, ub, 1000)).reshape((-1, 1))
+        xx_list = []
+        yy_list = []
+        for j in X:
+            optimizer_x = optim.Adam(model_x.parameters())
+            optimizer_y = optim.Adam(model_y.parameters())
 
-        outputs_x = trial_x(X)
-        outputs_y = trial_y(X)
-        x_t = T.autograd.grad(outputs_x, X, grad_outputs=T.ones_like(outputs_x), create_graph=True)[0]
-        y_t = T.autograd.grad(outputs_y, X, grad_outputs=T.ones_like(outputs_y), create_graph=True)[0]
+            nn_loss = nn.MSELoss()
 
-        X_up = X.detach().numpy()
-        outputs_x_up = trial_x(X).detach().numpy()
-        outputs_y_up = trial_y(X).detach().numpy()
+            j = (j.item())
+            X.requires_grad = True
+            
+            # trial solution of x(t) and y(t)
+            trial_x = lambda t: rand_x + t * model_x(t.float())
+            trial_y = lambda t: rand_y + t * model_y(t.float())
+
+            outputs_x = trial_x(X)
+            outputs_y = trial_y(X)
+
+            x_t = T.autograd.grad(outputs_x, X, grad_outputs=T.ones_like(outputs_x), create_graph=True)[0]
+            y_t = T.autograd.grad(outputs_y, X, grad_outputs=T.ones_like(outputs_y), create_graph=True)[0]
+
+            X_up = X.detach().numpy()
+            outputs_x_up = trial_x(X).detach().numpy()
+            outputs_y_up = trial_y(X).detach().numpy()
+            
+            loss_x = (T.mean(x_t - T.tensor(u_lam(X_up, outputs_x_up))))**2
+            loss_y = (T.mean(y_t - T.tensor(v_lam(X_up, outputs_y_up))))**2
+            
+            loss_x = nn_loss(trial_x(X), T.tensor(u_lam(X_up, outputs_x_up)))
+            loss_y = nn_loss(trial_y(X), T.tensor(u_lam(X_up, outputs_y_up)))
+            loss = (loss_x + loss_y)
+            
+            loss_x.backward()
+            optimizer_x.step()
+            loss_y.backward()
+            optimizer_y.step()
+
         
-        loss_x = T.mean((x_t - T.tensor(u_lam(X_up, outputs_x_up)))**2)
-        loss_y = T.mean((y_t - T.tensor(u_lam(X_up, outputs_y_up)))**2)
-
-        optimizer_x = optim.Adam(model.parameters())
-        optimizer_y = optim.Adam(model.parameters())
-        
-        loss_x.backward()
-        loss_y.backward()
-
-        loss_tot_x = 0
-        loss_tot_y = 0
-
-        optimizer_x.zero_grad()
-        optimizer_y.zero_grad()
-
-        optimizer_x.step()
-        optimizer_y.step()
-
-    tt = np.linspace(lb, ub, 100)[:, None]
-    with T.no_grad():
-        xx = trial_x(T.Tensor(tt)).numpy()
-        yy = trial_y(T.Tensor(tt)).numpy()
-    plt.plot(xx, yy)
-    plt.scatter(rand_x, rand_y, color = 'red', zorder = 1)
-    plt.quiver(x_grid, y_grid, u, v, zorder = 0)
+            with T.no_grad():
+                xx = trial_x(T.Tensor(X.float())).numpy()
+                yy = trial_y(T.Tensor(X.float())).numpy()
+                xx_list.append(xx)
+                yy_list.append(yy)
+                k = 0
+                while k < len(xx):
+                    #print(xx[k], yy[k])
+                    k+=1
+                
+        plt.plot(xx, yy)
+        plt.scatter(rand_x, rand_y, color = 'red', zorder = 1)
+    plt.quiver(x_grid, y_grid, u_lam(x_grid, y_grid), v_lam(x_grid, y_grid), zorder = 0)
     plt.show()
 
 
@@ -82,8 +101,8 @@ if __name__ == '__main__':
     parser.add_argument('--res_path', default='plots/', help='relative path to save the test plots at (default = \'plots/\')')
     parser.add_argument('--x_field', default='x**2', help='expression of the x-component of the vector field (default = x**2)')
     parser.add_argument('--y_field', default='y**2', help='expression of the y-component of the vector field (default = y**2)')
-    parser.add_argument('--lb', default=-1, help='lower bound for initial conditions (default = -1)', type=int)
-    parser.add_argument('--ub', default=+1, help='upper bound for initial conditions (default = +1)', type=int)
+    parser.add_argument('--lb', default=-10, help='lower bound for initial conditions (default = -1)', type=int)
+    parser.add_argument('--ub', default=+10, help='upper bound for initial conditions (default = +1)', type=int)
     parser.add_argument('--n_tests', default=3, help='number of test trajectories to plot (default = 3)', type=int)
 
     # Receiving the command line arguments
