@@ -17,6 +17,18 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
     json_file = "{0}/{1}".format(my_absolute_dirpath, param_in)
     plot_file = "{0}/{1}".format(my_absolute_dirpath, results_out)
 
+    # Checking if our json file exists
+    if os.path.isfile(json_file):
+        # Open the json file
+        with open(json_file, 'r') as file:
+            # Getting parameters from json
+            paras = json.load(file)
+            hidden_layer_size = paras['hidden layers']
+            epoch_max = paras['epoch max']
+            step_size = paras['solution step size']
+    else:
+        print('Filepath {0} does not exist'.format(json_file))
+
     # For plotting vector field
     x_grid, y_grid = T.tensor(np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/20), (abs(lb-ub)/20)), np.arange(lb, ub+(abs(lb-ub)/20), (abs(lb-ub)/20))))
 
@@ -26,9 +38,9 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
 
     # Establishing the network
     model = nn.Sequential(
-        nn.Linear(2, 50), 
+        nn.Linear(2, hidden_layer_size), 
         nn.ReLU(),
-        nn.Linear(50, 2, bias=False)
+        nn.Linear(hidden_layer_size, 2, bias=False)
     ).float()
 
     # Establishing the optimizer and loss function
@@ -36,10 +48,10 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
     nn_loss = MSELoss(reduction='sum')
 
     loss_total = 0
-    # STatus update
+    # Status update
     print('Starting Training:')
     # Iterating over the number of training epochs
-    for t in np.arange(51):
+    for t in np.arange(epoch_max + 1):
         # Iterating over the x positions in the grid
         for x_pos in x_grid[0]:
             # Iterating over the y positions in the grid
@@ -74,7 +86,7 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
         rand_x, rand_y = rd.randrange(lb*1000, ub*1000)/1000, rd.randrange(lb*1000, ub*1000)/1000
 
         # Small step size for iterating the gradient
-        dt = 0.01
+        dt = step_size
 
         # Set the first positions
         x_pos = rand_x
@@ -117,10 +129,13 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
 
         # Plotting the proposed solution
         plt.plot(x_list, y_list, zorder = 1)
+
         # Plotting the starting points
         plt.scatter(rand_x, rand_y, color = 'red', zorder = 2)
+
     # Plotting the vector field
     plt.quiver(x_grid, y_grid, u_lam(x_grid, y_grid), v_lam(x_grid, y_grid), zorder = 0)
+
     # Sometimes the plots run off the page. This keeps the plot where we want it
     plt.xlim(lb, ub)
     plt.ylim(lb, ub)
