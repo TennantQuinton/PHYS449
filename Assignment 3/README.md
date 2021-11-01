@@ -10,6 +10,16 @@
 - PyTorch
 - random
 
+## Attributes
+
+- "hidden layers": The number of nodes in the hidden layer
+- "epoch max": The number of epochs to run through in training
+- "solution step size": How large of increments when plotting the NN solution
+
+- Optimizer: Adam
+- Model: Linear, ReLU, Linear
+- Loss Function: Mean Squared Error
+
 ## Running `main.py`
 
 To run `main.py`, use
