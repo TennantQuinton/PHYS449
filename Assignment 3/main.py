@@ -30,7 +30,7 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
         print('Filepath {0} does not exist'.format(json_file))
 
     # For plotting vector field
-    x_grid, y_grid = T.tensor(np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/25), (abs(lb-ub)/25)), np.arange(lb, ub+(abs(lb-ub)/25), (abs(lb-ub)/25))))
+    x_grid, y_grid = T.tensor(np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/50), (abs(lb-ub)/50)), np.arange(lb, ub+(abs(lb-ub)/50), (abs(lb-ub)/50))))
 
     # For finding the gradient at each point
     u_lam = lambda x, y: eval(xfield) #-(y)/np.sqrt((x)**2 + (y)**2) #np.sin(np.pi*x) + np.sin(np.pi*y) #-(y)/np.sqrt((x)**2 + (y)**2) #
@@ -148,7 +148,7 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
     plt.legend(fontsize=12)
 
     # Save plot
-    print('Saving Plot to {0}plot_output.jpg'.format(results_out))
+    print('Saving Plot to {0}/plot_output.jpg'.format(results_out))
     plt.savefig('{0}/plot_output.jpg'.format(plot_file))
 
 
@@ -157,15 +157,19 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
 
 if __name__ == '__main__':
     # Command line arguments
+    ###############
+    # IMPORTANT: The arguments with hyphens can't be turned into variables since it thinks you're subtracting the two (e.g. args.n-tests is args.n - tests)
+    # Instead turned the hyphens into underlines. Need this to be able to run.
+    ###############
     parser = argparse.ArgumentParser(description='Assignment 3: Tennant, Quinton (20717788)')
     parser.add_argument('--param', default='param/param.json', help='relative file path for json attributes (default = \'param/param.json\')')
     parser.add_argument('-v', default=1, help='verbosity (default = 1)', type=float)
-    parser.add_argument('--res_path', default='plots/', help='relative path to save the test plots at (default = \'plots/\')')
-    parser.add_argument('--x_field', default='y**2', help='expression of the x-component of the vector field (default = y**2)')
-    parser.add_argument('--y_field', default='x**2', help='expression of the y-component of the vector field (default = x**2)')
-    parser.add_argument('--lb', default=-1, help='lower bound for initial conditions (default = -1)', type=int)
-    parser.add_argument('--ub', default=+1, help='upper bound for initial conditions (default = +1)', type=int)
-    parser.add_argument('--n_tests', default=3, help='number of test trajectories to plot (default = 3)', type=int)
+    parser.add_argument('--res_path', default='plots/', help='relative path to save the test plots at (default = \'plots/\') IMPORTANT: Underline instead of hyphen!')
+    parser.add_argument('--x_field', default='y**2', help='expression of the x-component of the vector field (default = y**2) IMPORTANT: Underline instead of hyphen!')
+    parser.add_argument('--y_field', default='x**2', help='expression of the y-component of the vector field (default = x**2) IMPORTANT: Underline instead of hyphen!')
+    parser.add_argument('--lb', default=-1, help='lower bound for initial conditions (default = -1)', type=float)
+    parser.add_argument('--ub', default=+1, help='upper bound for initial conditions (default = +1)', type=float)
+    parser.add_argument('--n_tests', default=3, help='number of test trajectories to plot (default = 3) IMPORTANT: Underline instead of hyphen!', type=int)
 
     # Receiving the command line arguments
     args = parser.parse_args()
