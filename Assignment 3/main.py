@@ -30,11 +30,11 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
         print('Filepath {0} does not exist'.format(json_file))
 
     # For plotting vector field
-    x_grid, y_grid = T.tensor(np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/20), (abs(lb-ub)/20)), np.arange(lb, ub+(abs(lb-ub)/20), (abs(lb-ub)/20))))
+    x_grid, y_grid = T.tensor(np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/25), (abs(lb-ub)/25)), np.arange(lb, ub+(abs(lb-ub)/25), (abs(lb-ub)/25))))
 
     # For finding the gradient at each point
-    u_lam = lambda x, y: eval(xfield) #-(y)/np.sqrt((x)**2 + (y)**2) #np.sin(np.pi*x) + np.sin(np.pi*y) #-(y)/np.sqrt((x)**2 + (y)**2) #
-    v_lam = lambda x, y: eval(yfield) #(x)/np.sqrt((x)**2 + (y)**2) #np.cos(np.pi*y) #(x)/np.sqrt((x)**2 + (y)**2) #
+    u_lam = lambda x, y: -(y)/np.sqrt((x)**2 + (y)**2) #np.sin(np.pi*x) + np.sin(np.pi*y) #-(y)/np.sqrt((x)**2 + (y)**2) #
+    v_lam = lambda x, y: (x)/np.sqrt((x)**2 + (y)**2) #np.cos(np.pi*y) #(x)/np.sqrt((x)**2 + (y)**2) #
 
     # Establishing the network
     model = nn.Sequential(
@@ -49,9 +49,9 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
 
     loss_total = 0
     # Status update
-    print('Starting Training:')
+    print('Starting Training...')
     # Iterating over the number of training epochs
-    for t in np.arange(epoch_max + 1):
+    for t in np.arange(epoch_max):
         # Iterating over the x positions in the grid
         for x_pos in x_grid[0]:
             # Iterating over the y positions in the grid
@@ -76,10 +76,13 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
                 # Step
                 optimizer.step()
                 # Update
-        print("Epoch:{0}, Loss:{1}".format(t, loss.item()))
+        if (verb==1):
+            print("Epoch:{0}/{1}, Loss:{2}".format(t+1, epoch_max, loss.item()))
 
     # Status update
-    print('Plotting:')
+    print('Plotting...')
+    figure = plt.figure(figsize=(15,10))
+    plt.gca()
     # Iterating over the number of starting points
     for i in np.arange(ntests):
         # Random starting position
@@ -128,10 +131,10 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
         #     y_list.append(y_pos)
 
         # Plotting the proposed solution
-        plt.plot(x_list, y_list, zorder = 1)
+        plt.plot(x_list, y_list, zorder = 1, label='Starting from [{0},{1}]'.format(rand_x, rand_y), linewidth=3)
 
         # Plotting the starting points
-        plt.scatter(rand_x, rand_y, color = 'red', zorder = 2)
+        plt.scatter(rand_x, rand_y, color = 'red', zorder = 2, s=5)
 
     # Plotting the vector field
     plt.quiver(x_grid, y_grid, u_lam(x_grid, y_grid), v_lam(x_grid, y_grid), zorder = 0)
@@ -139,7 +142,14 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
     # Sometimes the plots run off the page. This keeps the plot where we want it
     plt.xlim(lb, ub)
     plt.ylim(lb, ub)
-    plt.show()
+    plt.title('Approximate Solution of u={0}, v={1}'.format(xfield, yfield))
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.legend(fontsize=12)
+
+    # Save plot
+    print('Saving Plot to {0}plot_output.jpg'.format(results_out))
+    plt.savefig('{0}/plot_output.jpg'.format(plot_file))
 
 
     
