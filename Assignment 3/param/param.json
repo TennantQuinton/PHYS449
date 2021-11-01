@@ -2,6 +2,7 @@
 	"hidden layers": 50,
 	"epoch max": 50,
 	"solution step size": 0.01,
+	"cut off plot": 1,
 
 	"optim":{
 		"name": "Adam"

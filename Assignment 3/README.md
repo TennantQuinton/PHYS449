@@ -15,6 +15,7 @@
 - "hidden layers": The number of nodes in the hidden layer
 - "epoch max": The number of epochs to run through in training
 - "solution step size": How large of increments when plotting the NN solution
+- "cut off plot": Indicates whether the plot should cut off at the upper and lower bounds (0=no, 1=yes)
 
 - Optimizer: Adam
 - Model: Linear, ReLU, Linear
