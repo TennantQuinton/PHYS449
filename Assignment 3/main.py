@@ -79,7 +79,7 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
                 optimizer.step()
                 # Update
         if (verb>=2):
-            print("Epoch:{0}/{1}, Loss:{2}".format(t+1, epoch_max, round(loss.item(), 2)))
+            print("Epoch:{0}/{1}, Loss:{2}".format(t+1, epoch_max, round(loss.item(), 5)))
 
     # Status update
     if (verb >= 1):
