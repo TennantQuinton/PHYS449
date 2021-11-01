@@ -33,8 +33,8 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
     x_grid, y_grid = T.tensor(np.meshgrid(np.arange(lb, ub+(abs(lb-ub)/25), (abs(lb-ub)/25)), np.arange(lb, ub+(abs(lb-ub)/25), (abs(lb-ub)/25))))
 
     # For finding the gradient at each point
-    u_lam = lambda x, y: -(y)/np.sqrt((x)**2 + (y)**2) #np.sin(np.pi*x) + np.sin(np.pi*y) #-(y)/np.sqrt((x)**2 + (y)**2) #
-    v_lam = lambda x, y: (x)/np.sqrt((x)**2 + (y)**2) #np.cos(np.pi*y) #(x)/np.sqrt((x)**2 + (y)**2) #
+    u_lam = lambda x, y: eval(xfield) #-(y)/np.sqrt((x)**2 + (y)**2) #np.sin(np.pi*x) + np.sin(np.pi*y) #-(y)/np.sqrt((x)**2 + (y)**2) #
+    v_lam = lambda x, y: eval(yfield) #(x)/np.sqrt((x)**2 + (y)**2) #np.cos(np.pi*y) #(x)/np.sqrt((x)**2 + (y)**2) #
 
     # Establishing the network
     model = nn.Sequential(
@@ -134,7 +134,7 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
         plt.plot(x_list, y_list, zorder = 1, label='Starting from [{0},{1}]'.format(rand_x, rand_y), linewidth=3)
 
         # Plotting the starting points
-        plt.scatter(rand_x, rand_y, color = 'red', zorder = 2, s=5)
+        plt.scatter(rand_x, rand_y, color = 'red', zorder = 2, s=100)
 
     # Plotting the vector field
     plt.quiver(x_grid, y_grid, u_lam(x_grid, y_grid), v_lam(x_grid, y_grid), zorder = 0)
@@ -161,8 +161,8 @@ if __name__ == '__main__':
     parser.add_argument('--param', default='param/param.json', help='relative file path for json attributes (default = \'param/param.json\')')
     parser.add_argument('-v', default=1, help='verbosity (default = 1)', type=float)
     parser.add_argument('--res_path', default='plots/', help='relative path to save the test plots at (default = \'plots/\')')
-    parser.add_argument('--x_field', default='x**2', help='expression of the x-component of the vector field (default = x**2)')
-    parser.add_argument('--y_field', default='y**2', help='expression of the y-component of the vector field (default = y**2)')
+    parser.add_argument('--x_field', default='y**2', help='expression of the x-component of the vector field (default = y**2)')
+    parser.add_argument('--y_field', default='x**2', help='expression of the y-component of the vector field (default = x**2)')
     parser.add_argument('--lb', default=-1, help='lower bound for initial conditions (default = -1)', type=int)
     parser.add_argument('--ub', default=+1, help='upper bound for initial conditions (default = +1)', type=int)
     parser.add_argument('--n_tests', default=3, help='number of test trajectories to plot (default = 3)', type=int)
