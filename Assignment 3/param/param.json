@@ -1,6 +1,6 @@
 {
 	"hidden layers": 50,
-	"epoch max": 10,
+	"epoch max": 50,
 	"solution step size": 0.01,
 
 	"optim":{
