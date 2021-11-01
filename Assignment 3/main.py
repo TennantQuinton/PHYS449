@@ -26,6 +26,7 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
             hidden_layer_size = paras['hidden layers']
             epoch_max = paras['epoch max']
             step_size = paras['solution step size']
+            cut_plot = paras['cut off plot']
     else:
         print('Filepath {0} does not exist'.format(json_file))
 
@@ -49,7 +50,8 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
 
     loss_total = 0
     # Status update
-    print('Starting Training...')
+    if (verb >= 1):
+        print('Starting Training...')
     # Iterating over the number of training epochs
     for t in np.arange(epoch_max):
         # Iterating over the x positions in the grid
@@ -76,11 +78,12 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
                 # Step
                 optimizer.step()
                 # Update
-        if (verb>=1):
+        if (verb>=2):
             print("Epoch:{0}/{1}, Loss:{2}".format(t+1, epoch_max, loss.item()))
 
     # Status update
-    print('Plotting...')
+    if (verb >= 1):
+        print('Plotting...')
     figure = plt.figure(figsize=(15,10))
     plt.gca()
     # Iterating over the number of starting points
@@ -140,15 +143,17 @@ def ode_solv(lb, ub, ntests, xfield, yfield, verb, results_out, param_in):
     plt.quiver(x_grid, y_grid, u_lam(x_grid, y_grid), v_lam(x_grid, y_grid), zorder = 0)
 
     # Sometimes the plots run off the page. This keeps the plot where we want it
-    plt.xlim(lb, ub)
-    plt.ylim(lb, ub)
+    if (cut_plot==1):
+        plt.xlim(lb, ub)
+        plt.ylim(lb, ub)
     plt.title('Approximate Solution of u={0}, v={1}'.format(xfield, yfield))
     plt.xlabel('x')
     plt.ylabel('y')
     plt.legend(fontsize=12)
 
     # Save plot
-    print('Saving Plot to {0}/plot_output.jpg'.format(results_out))
+    if (verb >= 1):
+        print('Saving Plot to {0}/plot_output.jpg'.format(results_out))
     plt.savefig('{0}/plot_output.jpg'.format(plot_file))
 
 
@@ -163,7 +168,7 @@ if __name__ == '__main__':
     ###############
     parser = argparse.ArgumentParser(description='Assignment 3: Tennant, Quinton (20717788)')
     parser.add_argument('--param', default='param/param.json', help='relative file path for json attributes (default = \'param/param.json\')')
-    parser.add_argument('-v', default=1, help='verbosity (default = 1)', type=float)
+    parser.add_argument('-v', default=2, help='verbosity (default = 2)', type=float)
     parser.add_argument('--res_path', default='plots/', help='relative path to save the test plots at (default = \'plots/\') IMPORTANT: Underline instead of hyphen!')
     parser.add_argument('--x_field', default='y**2', help='expression of the x-component of the vector field (default = y**2) IMPORTANT: Underline instead of hyphen!')
     parser.add_argument('--y_field', default='x**2', help='expression of the y-component of the vector field (default = x**2) IMPORTANT: Underline instead of hyphen!')
