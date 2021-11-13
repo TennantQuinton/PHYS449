@@ -7,15 +7,27 @@ Assignment 4
 
 # Imports
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt
-import torch as T, torch.nn as nn, torch.optim as optim
+import torch as T, torch.nn as nn, torch.nn.functional as F, torch.optim as optim
 from torch.nn.modules.loss import MSELoss
 
-def boltz_mach(data):
+
+def data_tensor_create(data):
+    spin_list = []
     for line in data:
-        i_list = []
         for i in line:
-            i_list.append(int(('{0}1'.format(i))))
-        print(i_list)
+            spin_list.append(int(('{0}1'.format(i))))
+    spin_array = np.array(spin_list)
+    spin_array = spin_array.reshape((-1, 1, 4))
+    spin_tensor = (T.tensor(spin_array))
+    
+    return spin_tensor
+
+def energy(spin_tensor):
+    for row in spin_tensor:
+        for i in row[0]:
+            print(i)
+    
+    
 
 if __name__ == '__main__':
     # Command line arguments
@@ -38,5 +50,8 @@ if __name__ == '__main__':
     else:
         print('Filepath {0}/{1} does not exist'.format(my_absolute_dirpath, data_path))
     
-    # Call the function
-    boltz_mach(data_in)
+    # Arrange the data
+    data = data_tensor_create(data_in)
+    
+    energy(data)
+    
