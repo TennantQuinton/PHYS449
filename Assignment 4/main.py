@@ -9,6 +9,8 @@ Assignment 4
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt
 import torch as T, torch.nn as nn, torch.nn.functional as F, torch.optim as optim
 from torch.nn.modules.loss import MSELoss
+from torch.autograd import Variable
+import random
 
 
 def data_tensor_create(data):
@@ -22,13 +24,15 @@ def data_tensor_create(data):
     
     return spin_tensor
 
-def energy(spin_tensor):
-    for row in spin_tensor:
-        for i in row[0]:
-            print(i)
-    
-    
+def energy(Js, spins):
+    E_sum = 0
+    for k, i in enumerate(spins[0]):
+        E_sum += -(Js[k] * spins[0][k].item() * spins[0][(k+1)%len(spins[0])].item())
+    return E_sum
 
+def closure():
+    optim = T.optim.SGD()
+    
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 3: Tennant, Quinton (20717788)')
@@ -53,5 +57,17 @@ if __name__ == '__main__':
     # Arrange the data
     data = data_tensor_create(data_in)
     
-    energy(data)
+    # Initialize the guesses for J_ij
+    J_list = []
+    for i in np.arange(-1, len(data[0][0])-1, 1):
+        n = (random.randint(0, 1))
+        if (n==0):
+            n = -1
+        J_list.append(n)
+    
+    for spins in data:
+         cost = energy(J_list, spins)   
+         print(cost)
+         
+    print(J_list)
     
