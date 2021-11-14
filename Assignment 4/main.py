@@ -28,14 +28,17 @@ def energy(Js, spins):
     E_sum = 0
     for k, i in enumerate(spins[0]):
         E_sum += -(Js[k] * spins[0][k].item() * spins[0][(k+1)%len(spins[0])].item())
-    return E_sum
+    return E_sum   
 
 def closure():
-    optim = T.optim.SGD()
+    optim.zero_grad()
+    loss = energy(J_list, data[0])
+    loss.backward()
+    return loss
     
 if __name__ == '__main__':
     # Command line arguments
-    parser = argparse.ArgumentParser(description='Assignment 3: Tennant, Quinton (20717788)')
+    parser = argparse.ArgumentParser(description='Assignment 4: Tennant, Quinton (20717788)')
     parser.add_argument('-data_path', default='data/in.txt', help='relative file path for data input')
 
     # Receiving the command line arguments
@@ -58,16 +61,37 @@ if __name__ == '__main__':
     data = data_tensor_create(data_in)
     
     # Initialize the guesses for J_ij
-    J_list = []
-    for i in np.arange(-1, len(data[0][0])-1, 1):
-        n = (random.randint(0, 1))
-        if (n==0):
-            n = -1
-        J_list.append(n)
+    J_list = np.random.choice([-1, 1], 4)
+    J_tens = T.Tensor(J_list)
+        
+    print('Random initalization of J: {0}'.format(J_list))
+    print('Associated cost of first coupling: {0}'.format(energy(J_list, data[0])))
     
-    for spins in data:
-         cost = energy(J_list, spins)   
-         print(cost)
-         
-    print(J_list)
+    optim = T.optim.SGD(J_tens, lr=0.1)
+    
+    J_pt = [J_tens]
+    cost_pt = [energy(J_tens, data[0])]
+    x = [0]
+    
+    for i in range(100):
+        optim.step(closure)
+        if (i + 1) % 5 == 0:
+            x.append(i)
+            J_up = optim.param_groups[0]['params']
+            costn = energy(J_tens, data[i])
+            J_pt.append(J_up)
+            cost_pt.append(costn)
+            
+            # for clarity, the angles are printed as numpy arrays
+            print("Energy after step {:5d}: {: .7f} | Angles: {}".format(
+                i+1, costn, J_up.detach().numpy()),"\n"
+            )
+            
+    # cost_total = 0
+    # for spins in data:
+    #      cost = energy(J_list, spins)
+    #      cost_total+=cost
+    #      #print(cost)
+    # print(cost_total)
+
     
