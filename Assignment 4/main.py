@@ -32,7 +32,7 @@ def energy(Js, spins):
 
 def closure():
     optim.zero_grad()
-    loss = energy(J_list, data[0])
+    loss = T.tensor(energy(J_list, data[0]))
     loss.backward()
     return loss
     
@@ -62,12 +62,13 @@ if __name__ == '__main__':
     
     # Initialize the guesses for J_ij
     J_list = np.random.choice([-1, 1], 4)
-    J_tens = T.Tensor(J_list)
+    print(J_list)
+    J_tens = Variable(T.tensor(J_list), requires_grad=True)
         
     print('Random initalization of J: {0}'.format(J_list))
     print('Associated cost of first coupling: {0}'.format(energy(J_list, data[0])))
     
-    optim = T.optim.SGD(J_tens, lr=0.1)
+    optim = T.optim.SGD([J_tens], lr=0.1)
     
     J_pt = [J_tens]
     cost_pt = [energy(J_tens, data[0])]
