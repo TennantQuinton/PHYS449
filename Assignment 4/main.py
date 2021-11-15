@@ -13,7 +13,7 @@ from torch.autograd import Variable
 import random
 
 
-def data_tensor_create(data):
+def data_array_create(data):
     spin_list = []
     for line in data:
         for i in line:
@@ -22,19 +22,31 @@ def data_tensor_create(data):
     spin_array = spin_array.reshape((-1, 1, 4))
     spin_tensor = (T.tensor(spin_array))
     
-    return spin_tensor
+    return spin_array
 
 def energy(Js, spins):
     E_sum = 0
-    for k, i in enumerate(spins[0]):
-        E_sum += -(Js[k] * spins[0][k].item() * spins[0][(k+1)%len(spins[0])].item())
-    return E_sum   
+    for k, i in enumerate(spins):
+        for j, l in enumerate(i[0]):
+            print('here:')
+            print(i[0])
+            print(l)
+            print(len(i[0]))
+            print(j)
+            E_sum += -(Js[k] * spins[k])# * spins[(k+1)%len(spins)])
+    return E_sum
 
-def closure():
-    optim.zero_grad()
-    loss = T.tensor(energy(J_list, data[0]))
-    loss.backward()
-    return loss
+def rand_state(N):
+    return np.random.choice([-1, 1], N)
+
+def MCMC(J_list, state_y, state_x):
+    E_y = energy(J_list, state_y)
+    E_x = energy(J_list, state_x)
+    if (E_y < E_x):
+        return state_y
+    elif (E_x < E_y):
+        return state_x
+
     
 if __name__ == '__main__':
     # Command line arguments
@@ -58,35 +70,21 @@ if __name__ == '__main__':
         print('Filepath {0}/{1} does not exist'.format(my_absolute_dirpath, data_path))
     
     # Arrange the data
-    data = data_tensor_create(data_in)
+    data = data_array_create(data_in)
     
     # Initialize the guesses for J_ij
-    J_list = np.random.choice([-1, 1], 4)
-    print(J_list)
-    J_tens = Variable(T.tensor(J_list), requires_grad=True)
+    J_list = rand_state(4)
         
     print('Random initalization of J: {0}'.format(J_list))
-    print('Associated cost of first coupling: {0}'.format(energy(J_list, data[0])))
+    print('Associated cost of first coupling: {0}'.format(energy(J_list, data)))
     
-    optim = T.optim.SGD([J_tens], lr=0.1)
+    rand_state_x = rand_state(4)
+    rand_state_y = rand_state(4)
+    neg_phase_list = []
     
-    J_pt = [J_tens]
-    cost_pt = [energy(J_tens, data[0])]
-    x = [0]
-    
-    for i in range(100):
-        optim.step(closure)
-        if (i + 1) % 5 == 0:
-            x.append(i)
-            J_up = optim.param_groups[0]['params']
-            costn = energy(J_tens, data[i])
-            J_pt.append(J_up)
-            cost_pt.append(costn)
-            
-            # for clarity, the angles are printed as numpy arrays
-            print("Energy after step {:5d}: {: .7f} | Angles: {}".format(
-                i+1, costn, J_up.detach().numpy()),"\n"
-            )
+    print(rand_state_x)
+    print(rand_state_y)
+    print(MCMC(J_list, rand_state_x, rand_state_y))
             
     # cost_total = 0
     # for spins in data:
