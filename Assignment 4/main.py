@@ -7,10 +7,6 @@ Assignment 4
 
 # Imports
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt
-import torch as T, torch.nn as nn, torch.nn.functional as F, torch.optim as optim
-from torch.nn.modules.loss import MSELoss
-from torch.autograd import Variable
-import random
 
 
 def data_array_create(data):
@@ -19,21 +15,14 @@ def data_array_create(data):
         for i in line:
             spin_list.append(int(('{0}1'.format(i))))
     spin_array = np.array(spin_list)
-    spin_array = spin_array.reshape((-1, 1, 4))
-    spin_tensor = (T.tensor(spin_array))
+    spin_array = spin_array.reshape((-1, 4))
     
     return spin_array
 
-def energy(Js, spins):
+def energy(Js, spin_row):
     E_sum = 0
-    for k, i in enumerate(spins):
-        for j, l in enumerate(i[0]):
-            print('here:')
-            print(i[0])
-            print(l)
-            print(len(i[0]))
-            print(j)
-            E_sum += -(Js[k] * spins[k])# * spins[(k+1)%len(spins)])
+    for j, l in enumerate(spin_row):
+        E_sum += -(Js[j] * spin_row[j] * spin_row[(j+1)%len(spin_row)])
     return E_sum
 
 def rand_state(N):
@@ -74,9 +63,13 @@ if __name__ == '__main__':
     
     # Initialize the guesses for J_ij
     J_list = rand_state(4)
-        
     print('Random initalization of J: {0}'.format(J_list))
-    print('Associated cost of first coupling: {0}'.format(energy(J_list, data)))
+    print('Associated cost of first coupling: {0}'.format(energy(J_list, data[0])))
+    
+    E_sum_total = 0
+    for i in data:
+        E_sum_total += energy(J_list, i)
+    print(E_sum_total)
     
     rand_state_x = rand_state(4)
     rand_state_y = rand_state(4)
