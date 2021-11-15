@@ -89,11 +89,11 @@ def nearest_n_sum(array):
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 4: Tennant, Quinton (20717788)')
-    parser.add_argument('-data_path', default='data/in.txt', help='relative file path for data input (default data/in.txt)')
-    parser.add_argument('-output_path', default='outputs/', help='relative file path for output plots and weights (default output/)')
-    parser.add_argument('-verb', default=2, help='verbosity of the code (from 0-2)')
-    parser.add_argument('-n_epochs', default=5, help='number of epochs to update Jij over (default 5)')
-    parser.add_argument('-n_plambda', default=1000, help='number of iterations running the MCMC to find a suitable p_lambda (default 1000)')
+    parser.add_argument('-data_path', default='data/in.txt', help='relative file path for data input (default data/in.txt)', type=str)
+    parser.add_argument('-output_path', default='output/', help='relative file path for output plots and weights (default output/)', type=str)
+    parser.add_argument('-verb', default=2, help='verbosity of the code (from 0-2)', type=int)
+    parser.add_argument('-n_epochs', default=5, help='number of epochs to update Jij over (default 5)', type=int)
+    parser.add_argument('-n_plambda', default=1000, help='number of iterations running the MCMC to find a suitable p_lambda (default 1000)', type=int)
 
     # Receiving the command line arguments
     args = parser.parse_args()
