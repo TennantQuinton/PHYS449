@@ -89,16 +89,27 @@ def nearest_n_sum(array):
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 4: Tennant, Quinton (20717788)')
-    parser.add_argument('-data_path', default='data/in.txt', help='relative file path for data input')
+    parser.add_argument('-data_path', default='data/in.txt', help='relative file path for data input (default data/in.txt)')
+    parser.add_argument('-output_path', default='output/', help='relative file path for output plots and weights (default output/)')
+    parser.add_argument('-verb', default=2, help='verbosity of the code (from 0-2)')
+    parser.add_argument('-n_epochs', default=5, help='number of epochs to update Jij over (default 5)')
+    parser.add_argument('-n_plambda', default=1000, help='number of iterations running the MCMC to find a suitable p_lambda (default 1000)')
 
     # Receiving the command line arguments
     args = parser.parse_args()
 
     # Turning the arguments into variables
     data_path = args.data_path
+    output_path = args.output_path
+    verbosity = args.verb
+    n_epochs = args.n_epochs
+    n_plambda = args.n_plambda
 
     # Getting the absolute file path from the relative
     my_absolute_dirpath = os.path.abspath(os.path.dirname(__file__))
+    
+    # output path
+    out_path = "{0}/{1}".format(my_absolute_dirpath, output_path)
     
     # Checking if the in file exists
     if os.path.isfile("{0}/{1}".format(my_absolute_dirpath, data_path)):
@@ -113,14 +124,21 @@ if __name__ == '__main__':
     
     # Initialize the guesses for J_ij
     J_list = rand_state(len(data[0]))
-    # Update the user
-    print('Random initalization of J: {0}'.format(J_list))
+    
+    if (verbosity >= 0):
+        # Update the user
+        print('Random initalization of J: {0}'.format(J_list))
     
     # Run over the update of Jij N times
-    N = 10
+    N = n_epochs
+    d_loss_list = []
+    t_list = []
+    loss_list = []
+    
     for t in range(N):
-        # Update user
-        print("{0}/{1} of updating J_ij".format(t, N)) 
+        if (verbosity > 0):
+            # Update user
+            print("{0}/{1} of updating J_ij".format(t+1, N))
         
         # Initialize sum of the energy sums (NOT USED)
         E_sum_total = 0
@@ -133,12 +151,21 @@ if __name__ == '__main__':
         
         # Iterate over the dataset
         for iter in range(len(data)):
-            # Print update every 200 steps in finding p_lambdas
-            if ((iter % 200) == 0):
-                print("{0}/{1} of finding p_lambda states".format(iter, len(data)))
-            # Also print update at the last step
-            elif (iter == 999):
-                print("{0}/{1} of finding p_lambda states".format(iter+1, len(data)))
+            if (verbosity > 1):
+                # Print update every 200 steps in finding p_lambdas
+                if ((iter % (len(data)/5)) == 0):
+                    print("{0}/{1} of finding p_lambda states".format(iter, len(data)))
+                # Also print update at the last step
+                elif (iter == (len(data) - 1)):
+                    print("{0}/{1} of finding p_lambda states".format(iter+1, len(data)))
+                    
+            elif (verbosity == 1):
+                # Print update every 200 steps in finding p_lambdas
+                if ((iter % (len(data)/2)) == 0):
+                    print("{0}/{1} of finding p_lambda states".format(iter, len(data)))
+                # Also print update at the last step
+                elif (iter == (len(data) - 1)):
+                    print("{0}/{1} of finding p_lambda states".format(iter+1, len(data)))
                 
             # Get a random x and y state
             rand_state_x = rand_state(len(data[0]))
@@ -147,7 +174,7 @@ if __name__ == '__main__':
             # Use the MCMC for that first state
             MCMC_init = MCMC(J_list, rand_state_x, rand_state_y)[0]
             # Iterate 100 times to get best p_lambda value
-            for k in range(100):
+            for k in range(n_plambda):
                 # Get another random state to compare to our initial
                 rand_state_new = rand_state(len(data[0]))
                 
@@ -193,18 +220,23 @@ if __name__ == '__main__':
         
         # Compute the update rule and loss
         d_loss = pos_phase_array - neg_phase_array
-        loss = -(1/(len(data)))*(np.sum(np.log(pl_array)))
+        d_loss_list.append(d_loss)
+        t_list.append(t)
+        loss = -(1/(len(pl_array)))*(np.sum(np.log(pl_array)))
+        loss_list.append(loss)
         
         # Update our Jij values by the update rule
         J_list = (np.array(J_list) + d_loss)[0]
         
-        # Update the user
-        print('Loss update rule: {0}'.format(d_loss))
-        print('Updated edge-weights: {0}'.format(J_list))
-        print()
+        if (verbosity > 0):
+            # Update the user
+            print('Loss update rule: {0}'.format(d_loss))
+            print('Updated edge-weights: {0}'.format(J_list))
+            print()
         
-    # Now normalizing the edge-weights since we are restricted to +-1
-    print('Normalizing edge-weights')
+    if (verbosity > 0):
+        # Now normalizing the edge-weights since we are restricted to +-1
+        print('Normalizing edge-weights')
     J_out = ([round(val/(abs(val))) for val in J_list])
     
     # Convert to dictionary as set in the assignment
@@ -212,7 +244,30 @@ if __name__ == '__main__':
     for index, value in enumerate(J_out):
         # J_dict['({0}, {1})'.format(index, (index+1)%len(J_out))] = value
         J_dict[(index, (index+1)%len(J_out))] = value
+        
+    # Plotting if verbosity is > 0
+    if (verbosity > 0):
+        print('Plotting to {0}output_plot.jpg'.format(output_path))
+        plt.figure(figsize=(10,10))
+        plt.gca()
+        for i in range(len(J_list)):
+            plot_list = []
+            for line in d_loss_list:
+                plot_list.append(line[0][i])
+            
+            plt.plot(t_list, plot_list, label=f'$J_{{{i}, {(i+1)%(len(J_list))}}}$')
+            
+        plt.title(r'$\frac{d}{d\lambda}L$ over each iteration loop')
+        plt.xlabel('iteration')
+        plt.ylabel(r'$\frac{d}{d\lambda}L$')
+        plt.legend(fontsize=12)
+        plt.savefig('{0}/output_plot.jpg'.format(out_path))
+        
+        if (verbosity > 1):
+            plt.show()
     
     # Final update
-    print('Final edge-weights found: {0}'.format(J_dict))
-        
+    print('Final coupler values found: {0}'.format(J_dict))
+    print('Saving coupler dictionary to {0}couplers_out.txt'.format(output_path))
+    with open('{0}/couplers_out.txt'.format(out_path), 'w') as out_txt:
+        out_txt.write('{0}'.format(J_dict))
