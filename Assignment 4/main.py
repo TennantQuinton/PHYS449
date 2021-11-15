@@ -43,12 +43,16 @@ def MCMC(J_list, state_x, state_y):
         else:
             return state_x, prob
     
-def nearest_n_sum(state):
-    sum = 0
-    for i, spin in enumerate(state):
-        # print("{0}*{1} = {2}".format(state[i], state[(i+1) % len(state)], state[i] * state[(i+1) % len(state)]))
-        sum += state[i] * state[(i+1) % len(state)]
-    return sum
+def nearest_n_sum(array):
+    sum_list = []
+    for N in range(len(array[0])):
+        col_list = []
+        for i, spins in enumerate(array):
+            # print("{0}*{1} = {2}".format(state[i], state[(i+1) % len(state)], state[i] * state[(i+1) % len(state)]))
+            col_list.append(spins[N] * spins[(N+1) % len(spins)])
+        sum = np.sum(np.array(col_list))
+        sum_list.append(sum)
+    return sum_list
 
 def loss(d_loss, p_lambda, data):
     sum = 0
@@ -82,53 +86,62 @@ if __name__ == '__main__':
     # Arrange the data
     data = data_array_create(data_in)
     
+    loss_old = -10000
     # Initialize the guesses for J_ij
     J_list = rand_state(4)
     print('Random initalization of J: {0}'.format(J_list))
     
-    E_sum_total = 0
-    for i in data:
-        E_sum_total += energy(J_list, i)
-    
-    neg_list = []
-    plambda_list = []
-    
-    for iter in range(len(data)):
-        if ((iter % 200) == 0):
-            print("{0}/{1} iteration of finding p_lambda states".format(iter, len(data)))
-        rand_state_x = rand_state(4)
-        rand_state_y = rand_state(4)
+    for t in range(100):
+        print("{0}/100".format(t)) 
+        E_sum_total = 0
+        for i in data:
+            E_sum_total += energy(J_list, i)
         
-        MCMC_init = MCMC(J_list, rand_state_x, rand_state_y)[0]
-        for k in range(1000):
-            rand_state_new = rand_state(4)
-            MCMC_res = (MCMC(J_list, MCMC_init, rand_state_new))[0]
-            MCMC_init = MCMC_res
+        neg_list = []
+        plambda_list = []
+        
+        for iter in range(len(data)):
+            if ((iter % 200) == 0) or (iter == 999):
+                print("{0}/{1} iteration of finding p_lambda states".format(iter, len(data)))
+            rand_state_x = rand_state(4)
+            rand_state_y = rand_state(4)
             
-        neg_list.append(MCMC_res)
-            
-    neg_array = np.array(neg_list)
-    
-    neg_phase_list = []
-    D_neg = len(neg_array)
-    
-    for state in neg_array:
-        sum = nearest_n_sum(state)
-        avg = sum/D_neg
+            MCMC_init = MCMC(J_list, rand_state_x, rand_state_y)[0]
+            for k in range(10):
+                rand_state_new = rand_state(4)
+                
+                pl_res = (MCMC(J_list, MCMC_init, rand_state_new))[1]
+                MCMC_res = (MCMC(J_list, MCMC_init, rand_state_new))[0]
+                MCMC_init = MCMC_res
+                
+                plambda_list.append(pl_res)
+            neg_list.append(MCMC_res)
+                
+        neg_array = np.array(neg_list)
+        pl_array = np.array(plambda_list)
+        
+        neg_phase_list = []
+        D_neg = len(neg_array)
+        
+        # Negative phase
+        sum = np.array(nearest_n_sum(neg_array))
+        avg = [sum_val/D_neg for sum_val in sum]
         neg_phase_list.append(avg)
+            
+        pos_phase_list = []
+        D_pos = len(data)
         
-    pos_phase_list = []
-    D_pos = len(data)
-    
-    for state in data:
-        sum = nearest_n_sum(state)
-        avg = sum/D_pos
+        # Positive phase
+        sum = np.array(nearest_n_sum(data))
+        avg = avg = [sum_val/D_pos for sum_val in sum]
         pos_phase_list.append(avg)
+            
+        neg_phase_array = np.array(neg_phase_list)
+        pos_phase_array = np.array(pos_phase_list)
         
-    neg_phase_array = np.array(neg_phase_list)
-    pos_phase_array = np.array(pos_phase_list)
-    
-    d_loss = pos_phase_array - neg_phase_array
-    print(np.log(p_lambda_array))
-    loss = (np.sum(np.log(p_lambda_array)))
-    print(loss)
+        d_loss = pos_phase_array - neg_phase_array
+        # loss = -(1/(len(data)))*(np.sum(np.log(pl_array)))
+        print(d_loss)
+        print(np.array(J_list))
+        J_list = (np.array(J_list) - d_loss)[0]
+        print(J_list)
