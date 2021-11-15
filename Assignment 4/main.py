@@ -8,59 +8,83 @@ Assignment 4
 # Imports
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt
 
-
+# Function for taking the +- in file and converting to usable integers (+-1)
 def data_array_create(data):
+    # Initialize spin list
     spin_list = []
+    # Iterating over the lines of the data file
     for line in data:
+        # Iterating over the characters in each line
         for i in line:
+            # Append each converted value to the list
             spin_list.append(int(('{0}1'.format(i))))
+    # Convert to array
     spin_array = np.array(spin_list)
-    spin_array = spin_array.reshape((-1, 4))
+    # Reshape array to be individual rows of N length
+    spin_array = spin_array.reshape((-1, len(data[0])))
     
+    # Output the array of spins
     return spin_array
 
+# Function for finding the energy given a set J_list and spins
 def energy(Js, spin_row):
+    # Initialize the energy sum
     E_sum = 0
+    # Iterate over the spins in each row
     for j, l in enumerate(spin_row):
+        # For each iteration add to the Energy sum
         E_sum += -(Js[j] * spin_row[j] * spin_row[(j+1)%len(spin_row)])
+        
+    # Output the final sum
     return E_sum
 
+# Function to create a random state of N length
 def rand_state(N):
     rand = np.random.choice([-1, 1], N).tolist()
+    
+    # Output
     return rand
 
+# Function to find the output of the Monte-Carlo Markov Chain using Metropolis-Hastings sampling
 def MCMC(J_list, state_x, state_y):
+    # calculate the energy with the current J and each fed in state
     E_y = energy(J_list, state_y)
     E_x = energy(J_list, state_x)
     
+    # Calculating the Metropolis-Hastings normalized (0-1) probability
     prob = (np.exp(-E_x + E_y))/(3000)
+    
+    # Conditional tree for comparing the energies
     if (E_y <= E_x):
         return state_y, 1
     elif (E_x < E_y):
+        # Take a random number
         isisnot = np.random.random(1)
+        # Check where that random number lies on our probability and adjust accordingly
         if (isisnot < prob):
             return state_y, 1-prob
         else:
             return state_x, prob
     
+# Function to take an array of spins and find the sum of the ij nearest neighbours in each line
 def nearest_n_sum(array):
+    # Initialize sum list for sum of each column
     sum_list = []
+    # Iterating over the columns of the array
     for N in range(len(array[0])):
+        # Initalize the column list of ij values
         col_list = []
+        # Iterating over the spins in each row of the array
         for i, spins in enumerate(array):
-            # print("{0}*{1} = {2}".format(state[i], state[(i+1) % len(state)], state[i] * state[(i+1) % len(state)]))
+            # Append these values to the col_list
             col_list.append(spins[N] * spins[(N+1) % len(spins)])
+            
+        # Append to the sum list the sum of each column of ij nearest neighbours
         sum = np.sum(np.array(col_list))
         sum_list.append(sum)
-    return sum_list
-
-def loss(d_loss, p_lambda, data):
-    sum = 0
-    D_data = len(data)
-    
-    
         
-
+    # Output
+    return sum_list
     
 if __name__ == '__main__':
     # Command line arguments
@@ -81,67 +105,114 @@ if __name__ == '__main__':
         # Reading in the data and running the linear regression
         data_in = np.loadtxt("{0}/{1}".format(my_absolute_dirpath, data_path), dtype=str)
     else:
+        # If the filepath does not exist then throw error
         print('Filepath {0}/{1} does not exist'.format(my_absolute_dirpath, data_path))
     
     # Arrange the data
     data = data_array_create(data_in)
     
-    loss_old = -10000
     # Initialize the guesses for J_ij
-    J_list = rand_state(4)
+    J_list = rand_state(len(data[0]))
+    # Update the user
     print('Random initalization of J: {0}'.format(J_list))
     
-    for t in range(100):
-        print("{0}/100".format(t)) 
+    # Run over the update of Jij N times
+    N = 10
+    for t in range(N):
+        # Update user
+        print("{0}/{1} of updating J_ij".format(t, N)) 
+        
+        # Initialize sum of the energy sums (NOT USED)
         E_sum_total = 0
         for i in data:
             E_sum_total += energy(J_list, i)
         
+        # Initialize the neg_phase list and the p_lambda list
         neg_list = []
         plambda_list = []
         
+        # Iterate over the dataset
         for iter in range(len(data)):
-            if ((iter % 200) == 0) or (iter == 999):
-                print("{0}/{1} iteration of finding p_lambda states".format(iter, len(data)))
-            rand_state_x = rand_state(4)
-            rand_state_y = rand_state(4)
-            
-            MCMC_init = MCMC(J_list, rand_state_x, rand_state_y)[0]
-            for k in range(10):
-                rand_state_new = rand_state(4)
+            # Print update every 200 steps in finding p_lambdas
+            if ((iter % 200) == 0):
+                print("{0}/{1} of finding p_lambda states".format(iter, len(data)))
+            # Also print update at the last step
+            elif (iter == 999):
+                print("{0}/{1} of finding p_lambda states".format(iter+1, len(data)))
                 
+            # Get a random x and y state
+            rand_state_x = rand_state(len(data[0]))
+            rand_state_y = rand_state(len(data[0]))
+            
+            # Use the MCMC for that first state
+            MCMC_init = MCMC(J_list, rand_state_x, rand_state_y)[0]
+            # Iterate 100 times to get best p_lambda value
+            for k in range(100):
+                # Get another random state to compare to our initial
+                rand_state_new = rand_state(len(data[0]))
+                
+                # Get the p_lambda and state output in each loop
                 pl_res = (MCMC(J_list, MCMC_init, rand_state_new))[1]
                 MCMC_res = (MCMC(J_list, MCMC_init, rand_state_new))[0]
+                
+                # Update the initial state with the best state for this step
                 MCMC_init = MCMC_res
                 
+                # Append the p_lambda to the list
                 plambda_list.append(pl_res)
+            # Append the neg_phase to our list
             neg_list.append(MCMC_res)
                 
+        # Convert both to arrays
         neg_array = np.array(neg_list)
         pl_array = np.array(plambda_list)
         
+        # Initialize the negative phase
         neg_phase_list = []
+        # Length of the p_lambda data
         D_neg = len(neg_array)
         
-        # Negative phase
+        # Finding the negative phase
         sum = np.array(nearest_n_sum(neg_array))
         avg = [sum_val/D_neg for sum_val in sum]
         neg_phase_list.append(avg)
             
+        # Initialize the positive phase
         pos_phase_list = []
+        # Length of the dataset
         D_pos = len(data)
         
-        # Positive phase
+        # Finding the positive phase
         sum = np.array(nearest_n_sum(data))
         avg = avg = [sum_val/D_pos for sum_val in sum]
         pos_phase_list.append(avg)
             
+        # Convert to arrays
         neg_phase_array = np.array(neg_phase_list)
         pos_phase_array = np.array(pos_phase_list)
         
+        # Compute the update rule and loss
         d_loss = pos_phase_array - neg_phase_array
-        # loss = -(1/(len(data)))*(np.sum(np.log(pl_array)))
-        print(d_loss)
-        print(np.array(J_list))
-        J_list = (np.array(J_list) - d_loss)[0]
-        print(J_list)
+        loss = -(1/(len(data)))*(np.sum(np.log(pl_array)))
+        
+        # Update our Jij values by the update rule
+        J_list = (np.array(J_list) + d_loss)[0]
+        
+        # Update the user
+        print('Loss update rule: {0}'.format(d_loss))
+        print('Updated edge-weights: {0}'.format(J_list))
+        print()
+        
+    # Now normalizing the edge-weights since we are restricted to +-1
+    print('Normalizing edge-weights')
+    J_out = ([round(val/(abs(val))) for val in J_list])
+    
+    # Convert to dictionary as set in the assignment
+    J_dict = {}
+    for index, value in enumerate(J_out):
+        # J_dict['({0}, {1})'.format(index, (index+1)%len(J_out))] = value
+        J_dict[(index, (index+1)%len(J_out))] = value
+    
+    # Final update
+    print('Final edge-weights found: {0}'.format(J_dict))
+        
