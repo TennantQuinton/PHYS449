@@ -6,7 +6,7 @@ Assignment 4
 '''
 
 # Imports
-import os, json, argparse, numpy as np, matplotlib.pyplot as plt
+import os, argparse, numpy as np, matplotlib.pyplot as plt
 
 # Function for taking the +- in file and converting to usable integers (+-1)
 def data_array_create(data):
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 4: Tennant, Quinton (20717788)')
     parser.add_argument('-data_path', default='data/in.txt', help='relative file path for data input (default data/in.txt)')
-    parser.add_argument('-output_path', default='output/', help='relative file path for output plots and weights (default output/)')
+    parser.add_argument('-output_path', default='outputs/', help='relative file path for output plots and weights (default output/)')
     parser.add_argument('-verb', default=2, help='verbosity of the code (from 0-2)')
     parser.add_argument('-n_epochs', default=5, help='number of epochs to update Jij over (default 5)')
     parser.add_argument('-n_plambda', default=1000, help='number of iterations running the MCMC to find a suitable p_lambda (default 1000)')
@@ -110,6 +110,11 @@ if __name__ == '__main__':
     
     # output path
     out_path = "{0}/{1}".format(my_absolute_dirpath, output_path)
+    if (verbosity > 1):
+        print('Making output directory: {0}'.format(output_path))
+        
+    if (os.path.isdir(out_path) == False):
+        os.makedirs(out_path)
     
     # Checking if the in file exists
     if os.path.isfile("{0}/{1}".format(my_absolute_dirpath, data_path)):
