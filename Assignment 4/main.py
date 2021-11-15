@@ -154,18 +154,18 @@ if __name__ == '__main__':
             if (verbosity > 1):
                 # Print update every 200 steps in finding p_lambdas
                 if ((iter % (len(data)/5)) == 0):
-                    print("{0}/{1} of finding p_lambda states".format(iter, len(data)))
+                    print("{0}/{1} completed p_lambda states".format(iter, len(data)))
                 # Also print update at the last step
                 elif (iter == (len(data) - 1)):
-                    print("{0}/{1} of finding p_lambda states".format(iter+1, len(data)))
+                    print("{0}/{1} completed p_lambda states".format(iter+1, len(data)))
                     
             elif (verbosity == 1):
                 # Print update every 200 steps in finding p_lambdas
                 if ((iter % (len(data)/2)) == 0):
-                    print("{0}/{1} of finding p_lambda states".format(iter, len(data)))
+                    print("{0}/{1} completed p_lambda states".format(iter, len(data)))
                 # Also print update at the last step
                 elif (iter == (len(data) - 1)):
-                    print("{0}/{1} of finding p_lambda states".format(iter+1, len(data)))
+                    print("{0}/{1} completed p_lambda states".format(iter+1, len(data)))
                 
             # Get a random x and y state
             rand_state_x = rand_state(len(data[0]))
@@ -231,12 +231,12 @@ if __name__ == '__main__':
         if (verbosity > 0):
             # Update the user
             print('Loss update rule: {0}'.format(d_loss))
-            print('Updated edge-weights: {0}'.format(J_list))
+            print('Updated coupler values: {0}'.format(J_list))
             print()
         
     if (verbosity > 0):
         # Now normalizing the edge-weights since we are restricted to +-1
-        print('Normalizing edge-weights')
+        print('Normalizing coupler values')
     J_out = ([round(val/(abs(val))) for val in J_list])
     
     # Convert to dictionary as set in the assignment
