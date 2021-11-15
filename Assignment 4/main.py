@@ -26,15 +26,36 @@ def energy(Js, spin_row):
     return E_sum
 
 def rand_state(N):
-    return np.random.choice([-1, 1], N)
+    rand = np.random.choice([-1, 1], N).tolist()
+    return rand
 
-def MCMC(J_list, state_y, state_x):
+def MCMC(J_list, state_x, state_y):
     E_y = energy(J_list, state_y)
     E_x = energy(J_list, state_x)
-    if (E_y < E_x):
-        return state_y
+    
+    prob = (np.exp(-E_x + E_y))/(3000)
+    if (E_y <= E_x):
+        return state_y, 1
     elif (E_x < E_y):
-        return state_x
+        isisnot = np.random.random(1)
+        if (isisnot < prob):
+            return state_y, 1-prob
+        else:
+            return state_x, prob
+    
+def nearest_n_sum(state):
+    sum = 0
+    for i, spin in enumerate(state):
+        # print("{0}*{1} = {2}".format(state[i], state[(i+1) % len(state)], state[i] * state[(i+1) % len(state)]))
+        sum += state[i] * state[(i+1) % len(state)]
+    return sum
+
+def loss(d_loss, p_lambda, data):
+    sum = 0
+    D_data = len(data)
+    
+    
+        
 
     
 if __name__ == '__main__':
@@ -64,26 +85,50 @@ if __name__ == '__main__':
     # Initialize the guesses for J_ij
     J_list = rand_state(4)
     print('Random initalization of J: {0}'.format(J_list))
-    print('Associated cost of first coupling: {0}'.format(energy(J_list, data[0])))
     
     E_sum_total = 0
     for i in data:
         E_sum_total += energy(J_list, i)
-    print(E_sum_total)
     
-    rand_state_x = rand_state(4)
-    rand_state_y = rand_state(4)
-    neg_phase_list = []
+    neg_list = []
+    plambda_list = []
     
-    print(rand_state_x)
-    print(rand_state_y)
-    print(MCMC(J_list, rand_state_x, rand_state_y))
+    for iter in range(len(data)):
+        if ((iter % 200) == 0):
+            print("{0}/{1} iteration of finding p_lambda states".format(iter, len(data)))
+        rand_state_x = rand_state(4)
+        rand_state_y = rand_state(4)
+        
+        MCMC_init = MCMC(J_list, rand_state_x, rand_state_y)[0]
+        for k in range(1000):
+            rand_state_new = rand_state(4)
+            MCMC_res = (MCMC(J_list, MCMC_init, rand_state_new))[0]
+            MCMC_init = MCMC_res
             
-    # cost_total = 0
-    # for spins in data:
-    #      cost = energy(J_list, spins)
-    #      cost_total+=cost
-    #      #print(cost)
-    # print(cost_total)
-
+        neg_list.append(MCMC_res)
+            
+    neg_array = np.array(neg_list)
     
+    neg_phase_list = []
+    D_neg = len(neg_array)
+    
+    for state in neg_array:
+        sum = nearest_n_sum(state)
+        avg = sum/D_neg
+        neg_phase_list.append(avg)
+        
+    pos_phase_list = []
+    D_pos = len(data)
+    
+    for state in data:
+        sum = nearest_n_sum(state)
+        avg = sum/D_pos
+        pos_phase_list.append(avg)
+        
+    neg_phase_array = np.array(neg_phase_list)
+    pos_phase_array = np.array(pos_phase_list)
+    
+    d_loss = pos_phase_array - neg_phase_array
+    print(np.log(p_lambda_array))
+    loss = (np.sum(np.log(p_lambda_array)))
+    print(loss)
