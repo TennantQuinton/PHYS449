@@ -5,7 +5,7 @@ Assignment 2
     ID: 20717788
 '''
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt, pandas as pd
-import torch as T, torch.nn as nn, torch.optim as optim
+import torch as T, torch.nn as nn, torch.optim as optim, torchvision, torchvision.transforms as tf
 
 def conversion(input_data, test_size, batch_size):
     test_size = test_size
@@ -43,6 +43,8 @@ def conversion(input_data, test_size, batch_size):
     testing_tensor = T.utils.data.TensorDataset(testing_data_tens, testing_labels_tens)
     load_training = T.utils.data.DataLoader(training_tensor, batch_size = batch_size, shuffle = True)
     load_testing = T.utils.data.DataLoader(testing_tensor, batch_size = batch_size, shuffle = True)
+    # print(training_data_tens)
+    # print(type(training_data_tens[0][0][0][0].item()))
 
     return (load_training, load_testing)
 
@@ -74,6 +76,11 @@ def training_testing(load_training, load_testing, input_size, hidden_layer, outp
 
     # Get the probabilities (log from model) and the loss initials
     log_probs = model(images)
+    print(log_probs)
+    print(type(labels[0].item()))
+    print(log_probs.shape)
+    print(labels.shape)
+    input()
     loss = nn_loss(log_probs, labels)
 
     # Initalizing lists for plotting
