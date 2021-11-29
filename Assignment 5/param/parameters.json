@@ -1,0 +1,9 @@
+{
+    "testing data size": 3000,
+	"batch size": 100,
+    "input length": 14,
+    "hidden layer size": 100,
+    "output size": 9,
+    "learning rate": 0.001,
+    "number of epochs": 30
+}
