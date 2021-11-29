@@ -8,6 +8,24 @@ import os, json, argparse, numpy as np, matplotlib.pyplot as plt, pandas as pd
 import torch, torch.nn as nn, torch.optim as optim, torchvision, torchvision.transforms as transforms, torch.nn.functional as F
 import random
 
+class var_aenc(nn.Module):
+    def __init__(self):
+        super(var_aenc, self).__init__()
+        
+        # ENCODER
+        
+        # FULLY-CONNECTED LAYERS
+        
+        # DECODER
+        
+    def forward(self, x):
+        # Run through encoding
+        
+        # Learn what we can from the encoded data
+        
+        # Run through decoding
+        pass
+
 def conversion(input_data, test_size, batch_size):
     test_size = test_size
     batch_size = batch_size
@@ -54,14 +72,50 @@ def conversion(input_data, test_size, batch_size):
 
     return (load_training, load_testing)
 
-def training(model, optimizer, loss_f, dataloader, dataset):
-    num_epochs = 50
-    lr = 1e-3
-    batch_size = 128
-    
+# Function used for calculating the KL Divergence from input
+def KL_Div(logvar, mu):
+    return -0.5 * torch.sum(1 + logvar - mu**2 - np.exp(logvar))
+
+# Training loop function
+def training(model, optimizer, loss_f, dataloader):    
     model.train()
     loss_total = 0
     count = 0
+    
+    for data in dataloader:
+        data = data[0]
+        optimizer.zero_grad()
+        rec, mu, logvar = model(data)
+        BCE_loss = loss_f(rec, data)
+        loss = BCE_loss + KL_Div(logvar, mu)
+        loss.backward()
+        loss_total += loss.item()
+        optimizer.step()
+        count+=1
+        
+    train_loss = loss_total/count
+    return train_loss
+
+def testing(model, optimizer, loss_f, dataloader):
+    model.eval()
+    loss_total = 0
+    count = 0
+    
+    with torch.no_grad():
+        for data in dataloader:
+            data = data[0]
+            rec, mu, logvar = model(data)
+            BCE_loss = loss_f(rec, data)
+            loss = BCE_loss + KL_Div(logvar, mu)
+            loss_total += loss.item()
+            
+            image = rec
+            count += 1
+            
+    test_loss = loss_total/count
+    return test_loss, image
+        
+    
     
     
     
@@ -106,23 +160,7 @@ if __name__ == '__main__':
                 output_size = paras['output size']
                 learning_rate = paras['learning rate']
                 num_epochs = paras['number of epochs']
-            # Calling the functions above
-            converted_data = conversion(data_in, testing_data_size, batch_size)
-            # digit_rec = training_testing(converted_data[0], converted_data[1], input_size, hidden_layer_size, output_size, learning_rate, num_epochs)
             
-            # Print update
-            # print('\nAfter running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(digit_rec[0], digit_rec[1], digit_rec[2], digit_rec[3]))
-            
-            # Write the results to the .out file
-            # with open(out_file, 'w') as out_file:
-            #     out_file.write('After running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(digit_rec[0], round(digit_rec[1], 4), round(digit_rec[2], 2), round(digit_rec[3], 4)))
-            
-            plt.title('Losses of Digit Recognition Program in Training and Testing')
-            plt.xlabel('Epoch')
-            plt.ylabel('Loss')
-            plt.legend()
-            plt.savefig("{0}/{1}/Losses.jpg".format(my_absolute_dirpath, pathname))
-            print('Plotting to {0}/{1}/Losses.jpg'.format(my_absolute_dirpath, pathname))
         else:
             print('Filepath {0} does not exist'.format(json_file))
     else:
