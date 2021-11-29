@@ -5,7 +5,8 @@ Assignment 5
     ID: 20717788
 '''
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt, pandas as pd
-import torch as T, torch.nn as nn, torch.optim as optim, torchvision, torchvision.transforms as tf
+import torch, torch.nn as nn, torch.optim as optim, torchvision, torchvision.transforms as transforms, torch.nn.functional as F
+import random
 
 def conversion(input_data, test_size, batch_size):
     test_size = test_size
@@ -31,18 +32,23 @@ def conversion(input_data, test_size, batch_size):
     training_labels = training_labels.reshape(training_labels.shape[0])
     testing_data = testing_data.reshape((-1, 1, 14, 14))
     testing_labels = testing_labels.reshape(testing_labels.shape[0])
+    # for i in range(0,5):
+    #     rand_index = random.choice(range(0,2000))
+    #     print(training_labels[rand_index])
+    #     plt.imshow(training_data[rand_index][0], cmap='gray_r')
+    #     plt.show()
 
     # Convert to PyTorch tensor and normalize values
-    training_data_tens = T.tensor(training_data)/255.0
-    training_labels_tens = T.tensor(training_labels)
-    testing_data_tens = T.tensor(testing_data)/255.0
-    testing_labels_tens = T.tensor(testing_labels)
+    training_data_tens = torch.tensor(training_data)/255.0
+    training_labels_tens = torch.tensor(training_labels)
+    testing_data_tens = torch.tensor(testing_data)/255.0
+    testing_labels_tens = torch.tensor(testing_labels)
 
     # Convert to tensor with both data and labels. Then load the data
-    training_tensor = T.utils.data.TensorDataset(training_data_tens, training_labels_tens)
-    testing_tensor = T.utils.data.TensorDataset(testing_data_tens, testing_labels_tens)
-    load_training = T.utils.data.DataLoader(training_tensor, batch_size = batch_size, shuffle = True)
-    load_testing = T.utils.data.DataLoader(testing_tensor, batch_size = batch_size, shuffle = True)
+    training_tensor = torch.utils.data.TensorDataset(training_data_tens, training_labels_tens)
+    testing_tensor = torch.utils.data.TensorDataset(testing_data_tens, testing_labels_tens)
+    load_training = torch.utils.data.DataLoader(training_tensor, batch_size = batch_size, shuffle = True)
+    load_testing = torch.utils.data.DataLoader(testing_tensor, batch_size = batch_size, shuffle = True)
     # print(training_data_tens)
     # print(type(training_data_tens[0][0][0][0].item()))
 
@@ -92,11 +98,11 @@ if __name__ == '__main__':
             # digit_rec = training_testing(converted_data[0], converted_data[1], input_size, hidden_layer_size, output_size, learning_rate, num_epochs)
             
             # Print update
-            print('\nAfter running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(digit_rec[0], digit_rec[1], digit_rec[2], digit_rec[3]))
+            # print('\nAfter running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(digit_rec[0], digit_rec[1], digit_rec[2], digit_rec[3]))
             
             # Write the results to the .out file
-            with open(out_file, 'w') as out_file:
-                out_file.write('After running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(digit_rec[0], round(digit_rec[1], 4), round(digit_rec[2], 2), round(digit_rec[3], 4)))
+            # with open(out_file, 'w') as out_file:
+            #     out_file.write('After running through the {0} Epochs we found:\n\tTraining Loss: {1}\n\tTesting Loss: {3}\n\tAccuracy: {2}%'.format(digit_rec[0], round(digit_rec[1], 4), round(digit_rec[2], 2), round(digit_rec[3], 4)))
             
             plt.title('Losses of Digit Recognition Program in Training and Testing')
             plt.xlabel('Epoch')
