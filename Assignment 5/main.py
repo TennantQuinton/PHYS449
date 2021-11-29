@@ -54,6 +54,19 @@ def conversion(input_data, test_size, batch_size):
 
     return (load_training, load_testing)
 
+def training(model, optimizer, loss_f, dataloader, dataset):
+    num_epochs = 50
+    lr = 1e-3
+    batch_size = 128
+    
+    model.train()
+    loss_total = 0
+    count = 0
+    
+    
+    
+    
+
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 5: Tennant, Quinton (20717788)')
