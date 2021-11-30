@@ -4,13 +4,14 @@ Assignment 5
     Name: Quinton Tennant
     ID: 20717788
 '''
+
+# Imports
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt, pandas as pd
-import torch, torch.nn as nn, torch.optim as optim, torchvision, torchvision.transforms as transforms, torch.nn.functional as F
-from torchvision.utils import make_grid
-from torch.utils.data import TensorDataset
-from torch.utils.data import DataLoader
+import torch, torch.nn as nn, torch.optim as optim, torch.nn.functional as F
+from torch.utils.data import TensorDataset, DataLoader
 from torchvision.utils import save_image
 
+# Class used for defining our model
 class var_aenc(nn.Module):
     def __init__(self, in_size, h_size1, h_size2, mv_size):
         super(var_aenc, self).__init__()
@@ -28,16 +29,19 @@ class var_aenc(nn.Module):
         self.decode2 = nn.Linear(h_size2, h_size1)
         self.decode3 = nn.Linear(h_size1, in_size)
     
+    # Running through encoding layers
     def encoding(self, x):
         z = F.relu(self.encode1(x))
         z = F.relu(self.encode2(z))
         return self.fc_mu(z), self.fc_var(z)
     
+    # Running through decoding layers
     def decoding(self, x):
         z = F.relu(self.decode1(x))
         z = F.relu(self.decode2(z))
         return F.sigmoid(self.decode3(z))
     
+    # Forward prop
     def forward(self, x):
         mu, lvar = self.encoding(x.view(-1, 196))
         std = torch.exp((1/2)*lvar)
@@ -82,38 +86,51 @@ def conversion(input_data, test_size, batch_size):
 
     return (load_training, load_testing)
 
+# Loss function to combine KL Divergence and BCE into total loss
 def loss_function(recon_x, x, mu, log_var):
     BCE = F.binary_cross_entropy(recon_x, x.view(-1, 196), reduction='sum')
     KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
     return BCE + KLD
 
 # Training loop function
-def training(dataloader, epoch):    
+def training(dataloader, epoch):  
     model.train()
-    loss_total = 0
-    count = 0
+    loss_total = 0          # Initialize the total losee
+    count = 0               # Initialize the count
     
+    # Loop over the converted data
     for data in dataloader:
+        # Give the data it's proper shape
         data = data[0].reshape((-1, 1, 14, 14))
+        
+        # Zero the gradient before each
         optimz.zero_grad()
         
+        # Retrieve the reconstructed image, mu, and log of variance from the model on this data
         rec, mu, logvar = model(data)
+        # Propogate the loss comparing the reconstructed to the actual
         loss = loss_function(rec, data, mu, logvar)
         loss.backward()
         
+        # Update the total loss
         loss_total += loss.item()
+        
+        # Step forward
         optimz.step()
         count+=1
         
+        # Every 5000th data point in the epoch print out an update containing:
+        # Epoch number
+        # What data point we are out of the total
+        # The loss found at this point
         if count % 50 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, count * len(data), len(dataloader.dataset),
-                100. * count / len(dataloader), loss.item() / len(data)))
+            print('Epoch: {0}, Image {1}/{2} ({3}%), Loss: {4}'.format(epoch, (count * len(data)), (len(dataloader.dataset)), (100. * count / len(dataloader)), loss.item() / len(data)))
            
     train_loss = loss_total / len(dataloader.dataset)
     print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, train_loss))
     return train_loss
 
+# Testing loop function
 def testing(dataloader):
     model.eval()
     loss_total = 0
