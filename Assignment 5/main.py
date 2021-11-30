@@ -9,12 +9,7 @@ import torch, torch.nn as nn, torch.optim as optim, torchvision, torchvision.tra
 from torchvision.utils import make_grid
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
-import random
-
-kernel_size = 2 # (4, 4) kernel
-init_channels = 8 # initial number of filters
-image_channels = 1 # MNIST images are grayscale
-latent_dim = 16 # latent dimension for sampling
+from torchvision.utils import save_image
 
 class var_aenc(nn.Module):
     def __init__(self, in_size, h_size1, h_size2, mv_size):
@@ -68,15 +63,10 @@ def conversion(input_data, test_size, batch_size):
     testing_labels = np.array(testing_labels)
 
     # Reshape to the correct dimensions for analysis
-    training_data = training_data.reshape((-1, 1, 14, 14))
+    training_data = training_data.reshape((-1, 14, 14))
     training_labels = training_labels.reshape(training_labels.shape[0])
-    testing_data = testing_data.reshape((-1, 1, 14, 14))
+    testing_data = testing_data.reshape((-1, 14, 14))
     testing_labels = testing_labels.reshape(testing_labels.shape[0])
-    # for i in range(0,5):
-    #     rand_index = random.choice(range(0,2000))
-    #     print(training_labels[rand_index])
-    #     plt.imshow(training_data[rand_index][0], cmap='gray_r')
-    #     plt.show()
 
     # Convert to PyTorch tensor and normalize values
     training_data_tens = torch.tensor(training_data)/255.0
@@ -87,45 +77,44 @@ def conversion(input_data, test_size, batch_size):
     # Convert to tensor with both data and labels. Then load the data
     training_tensor = TensorDataset(training_data_tens, training_labels_tens)
     testing_tensor = TensorDataset(testing_data_tens, testing_labels_tens)
-    # print(training_tensor.tensors[0].shape)
-    # quit()
     load_training = DataLoader(training_tensor, batch_size = batch_size, shuffle = True)
-    load_testing = DataLoader(testing_tensor, batch_size = batch_size, shuffle = True)
+    load_testing = DataLoader(testing_tensor, batch_size = batch_size, shuffle = False)
 
     return (load_training, load_testing)
 
-# Function used for calculating the KL Divergence from input
-def KL_Div(logvar, mu):
-    return -0.5 * torch.sum(1 + logvar - mu**2 - np.exp(logvar))
+def loss_function(recon_x, x, mu, log_var):
+    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 196), reduction='sum')
+    KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+    return BCE + KLD
 
 # Training loop function
-def training(loss_f, dataloader, epoch):    
+def training(dataloader, epoch):    
     model.train()
     loss_total = 0
     count = 0
     
     for data in dataloader:
-        data = data[0]
+        data = data[0].reshape((-1, 1, 14, 14))
         optimz.zero_grad()
         
         rec, mu, logvar = model(data)
-        BCE_loss = loss_f(rec, data)
-        loss = BCE_loss + KL_Div(logvar, mu)
+        loss = loss_function(rec, data, mu, logvar)
         loss.backward()
         
         loss_total += loss.item()
         optimz.step()
         count+=1
         
-        if count % 100 == 0:
+        if count % 50 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, count * len(data), len(dataloader.dataset),
                 100. * count / len(dataloader), loss.item() / len(data)))
-            
-    print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, loss_total / count))
-    return loss_total/count
+           
+    train_loss = loss_total / len(dataloader.dataset)
+    print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, train_loss))
+    return train_loss
 
-def testing(loss_f, dataloader):
+def testing(dataloader):
     model.eval()
     loss_total = 0
     count = 0
@@ -135,14 +124,13 @@ def testing(loss_f, dataloader):
             data = data[0]
             rec, mu, logvar = model(data)
             
-            BCE_loss = loss_f(rec, data)
-            loss = BCE_loss + KL_Div(logvar, mu)
+            loss = loss_function(rec, data, mu, logvar)
             loss_total += loss.item()
             
             image = rec
             count += 1
     
-    test_loss = loss_total/count
+    test_loss = loss_total/len(dataloader.dataset)
     print('====> Test set loss: {:.4f}'.format(test_loss))
     return test_loss, image
         
@@ -195,22 +183,40 @@ if __name__ == '__main__':
                 
                 converted_data = conversion(data_in, testing_data_size, batch_size)
                 
-                model = var_aenc(196, 256, 128, 2)
+                model = var_aenc(196, 128, 64, 2)
                 optimz = optim.Adam(model.parameters(), learning_rate)
                 loss_f = nn.BCELoss(reduction='sum')
                 
-                train_loss = []
-                test_loss = []
-                for e in range(num_epochs):
-                    training(loss_f, converted_data[0], e)
-                    testing(loss_f, converted_data[1])
-                    # training_loss = training(model, optimz, loss_f, converted_data[0])
-                    # testing_loss = testing(model, loss_f, converted_data[1])
+                train_loss_list = []
+                test_loss_list = []
+                e_list = []
+                z_grid = torch.randn(64, 2)
+                
+                for e in range(1, num_epochs+1):
+                    train_loss = training(converted_data[0], e)
+                    test_loss = testing(converted_data[1])
                     
-                    # train_loss.append(training_loss)
-                    # test_loss.append(testing_loss)
-                    # print('Epoch {0}/{1}'.format(e, num_epochs))
-                    # print('Training Loss: {0}, Testing Loss: {1}'.format(training_loss, testing_loss))
+                    train_loss_list.append(train_loss)
+                    test_loss_list.append(test_loss[0])
+                    e_list.append(e)
+                    
+                    if (e % 10 == 0):
+                        with torch.no_grad():
+                            sample = model.decoding(z_grid)
+                            
+                            save_image(sample.view(64, 1, 14, 14), './epoch_outputs/sample{0}.jpg'.format(e))
+                            
+                for i in range(1, 101):
+                    with torch.no_grad():
+                        z_grid = torch.randn(1, 2)
+                        sample = model.decoding(z_grid)
+                        
+                        save_image(sample.view(1, 1, 14, 14), './final_outputs/{0}.pdf'.format(i))
+                        
+                plt.plot(e_list, train_loss_list, label='Training Loss')
+                plt.plot(e_list, test_loss_list, label='Testing Loss')
+                plt.legend()
+                plt.savefig('./final_outputs/loss.pdf')
         else:
             print('Filepath {0} does not exist'.format(json_file))
     else:
