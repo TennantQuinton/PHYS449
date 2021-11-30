@@ -39,7 +39,7 @@ class var_aenc(nn.Module):
     def decoding(self, x):
         z = F.relu(self.decode1(x))
         z = F.relu(self.decode2(z))
-        return F.sigmoid(self.decode3(z))
+        return torch.sigmoid(self.decode3(z))
     
     # Forward prop
     def forward(self, x):
@@ -87,7 +87,7 @@ def conversion(input_data, test_size, batch_size):
     return (load_training, load_testing)
 
 # Loss function to combine KL Divergence and BCE into total loss
-def loss_function(recon_x, x, mu, log_var):
+def loss_f(recon_x, x, mu, log_var):
     BCE = F.binary_cross_entropy(recon_x, x.view(-1, 196), reduction='sum')
     KLD = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
     return BCE + KLD
@@ -101,7 +101,7 @@ def training(dataloader, epoch):
     # Loop over the converted data
     for data in dataloader:
         # Give the data it's proper shape
-        data = data[0].reshape((-1, 1, 14, 14))
+        data = data[0]#.reshape((-1, 1, 14, 14))
         
         # Zero the gradient before each
         optimz.zero_grad()
@@ -109,7 +109,7 @@ def training(dataloader, epoch):
         # Retrieve the reconstructed image, mu, and log of variance from the model on this data
         rec, mu, logvar = model(data)
         # Propogate the loss comparing the reconstructed to the actual
-        loss = loss_function(rec, data, mu, logvar)
+        loss = loss_f(rec, data, mu, logvar)
         loss.backward()
         
         # Update the total loss
@@ -124,31 +124,38 @@ def training(dataloader, epoch):
         # What data point we are out of the total
         # The loss found at this point
         if count % 50 == 0:
-            print('Epoch: {0}, Image {1}/{2} ({3}%), Loss: {4}'.format(epoch, (count * len(data)), (len(dataloader.dataset)), (100. * count / len(dataloader)), loss.item() / len(data)))
-           
+            print('\tImage {1}/{2}, Loss: {4}'.format(epoch, (count * len(data)), (len(dataloader.dataset)), int(round((100. * count / len(dataloader)), 0)), round((loss.item() / len(data)), 3)))
+        
+    # The training loss is found by dividing our loss sum by the total data length
     train_loss = loss_total / len(dataloader.dataset)
-    print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, train_loss))
     return train_loss
 
 # Testing loop function
 def testing(dataloader):
     model.eval()
+    # Initialize the total loss and count
     loss_total = 0
     count = 0
     
+    # Use without gradient
     with torch.no_grad():
+        # Loop through converted data
         for data in dataloader:
+            # Get data from converted loader
             data = data[0]
+            
+            # Find the reconstructed images, mu, and log variance
             rec, mu, logvar = model(data)
             
-            loss = loss_function(rec, data, mu, logvar)
+            # Update the total loss
+            loss = loss_f(rec, data, mu, logvar)
             loss_total += loss.item()
             
             image = rec
             count += 1
     
+    # Output the final loss and image
     test_loss = loss_total/len(dataloader.dataset)
-    print('====> Test set loss: {:.4f}'.format(test_loss))
     return test_loss, image
         
     
@@ -189,47 +196,58 @@ if __name__ == '__main__':
             with open(json_file, 'r') as file:
                 # Getting parameters from json
                 paras = json.load(file)
-                testing_data_size = paras['testing data size']
-                input_size = paras['input length']
-                hidden_layer_size = paras['hidden layer size']
-                output_size = paras['output size']
-                
+                testing_data_size = paras['testing data size']                
                 learning_rate = paras['learning rate']
                 num_epochs = paras['number of epochs']
                 batch_size = paras['batch size']
                 
+                # Convert the in_data
                 converted_data = conversion(data_in, testing_data_size, batch_size)
                 
+                # Set the model and optimizer
                 model = var_aenc(196, 128, 64, 2)
                 optimz = optim.Adam(model.parameters(), learning_rate)
-                loss_f = nn.BCELoss(reduction='sum')
                 
+                # Initialize the lists for plotting
                 train_loss_list = []
                 test_loss_list = []
                 e_list = []
+                # and a grid for epoch outputs to see how the model improves (for interest)
                 z_grid = torch.randn(64, 2)
                 
+                # Loop over the epochs
                 for e in range(1, num_epochs+1):
+                    # Update
+                    print('Epoch: {0}/{1}'.format(e, num_epochs))
+                    
+                    # Get the training and test loss
                     train_loss = training(converted_data[0], e)
                     test_loss = testing(converted_data[1])
                     
+                    # Update
+                    print('\tAverage Training Loss: {1}, Test Loss: {2}\n'.format(e, round(train_loss, 3), round(test_loss[0], 3)))
+                    
+                    # Append to plotting lists
                     train_loss_list.append(train_loss)
                     test_loss_list.append(test_loss[0])
                     e_list.append(e)
                     
+                    # Every 10th epoch save grid of numbers to epoch_outputs folder (for interest)
                     if (e % 10 == 0):
                         with torch.no_grad():
-                            sample = model.decoding(z_grid)
-                            
-                            save_image(sample.view(64, 1, 14, 14), './epoch_outputs/sample{0}.jpg'.format(e))
-                            
+                            output = model.decoding(z_grid)
+                            save_image(output.view(64, 1, 14, 14), './epoch_outputs/sample{0}.jpg'.format(e))
+                
+                # Now creating n images AFTER training (as set by the problem statement)
+                # TODO: change to user input n-value   
+                # TODO: change all file paths to use absolute directory and create results folder as set by assignment
                 for i in range(1, 101):
                     with torch.no_grad():
                         z_grid = torch.randn(1, 2)
                         sample = model.decoding(z_grid)
-                        
                         save_image(sample.view(1, 1, 14, 14), './final_outputs/{0}.pdf'.format(i))
                         
+                # Plot the loss over epochs
                 plt.plot(e_list, train_loss_list, label='Training Loss')
                 plt.plot(e_list, test_loss_list, label='Testing Loss')
                 plt.legend()
