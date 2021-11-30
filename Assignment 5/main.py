@@ -223,6 +223,12 @@ if __name__ == '__main__':
                 learning_rate = paras['learning rate']
                 num_epochs = paras['number of epochs']
                 batch_size = paras['batch size']
+                from_scratch = paras['from scratch']
+                
+                if (from_scratch == 0):
+                    from_scratch = False
+                elif (from_scratch == 1):
+                    from_scratch = True
                 
                 # Convert the in_data
                 converted_data = conversion(data_in, testing_data_size, batch_size)
@@ -238,36 +244,99 @@ if __name__ == '__main__':
                 # and a grid for epoch outputs to see how the model improves (for interest)
                 z_grid = torch.randn(64, 2)
                 
-                # Loop over the epochs
-                for e in range(1, num_epochs+1):
-                    if (verbosity >= 0):
-                        # Update
-                        print('Epoch: {0}/{1}'.format(e, num_epochs))
+                if (os.path.isfile(model_path) == False):
+                    if (verbosity > 0):
+                        print('Model does not exist. Starting Training')
+                    # Loop over the epochs
+                    for e in range(1, num_epochs+1):
+                        if (verbosity >= 0):
+                            # Update
+                            print('Epoch: {0}/{1}'.format(e, num_epochs))
+                        
+                        # Get the training and test loss
+                        train_loss = training(converted_data[0], e)
+                        test_loss = testing(converted_data[1])
+                        
+                        if (verbosity >= 1):
+                            # Update
+                            print('\tAverage Training Loss: {1}, Test Loss: {2}\n'.format(e, round(train_loss, 3), round(test_loss[0], 3)))
+                        
+                        # Append to plotting lists
+                        train_loss_list.append(train_loss)
+                        test_loss_list.append(test_loss[0])
+                        e_list.append(e)
+                        
+                        # Every 10th epoch save grid of numbers to epoch_outputs folder (for interest)
+                        if ((e % 10 == 0) or (e == 1)):
+                            if (verbosity > 0):
+                                print('Creating a sample grid of reconstructed digits for Epoch {0}'.format(e))
+                            with torch.no_grad():
+                                output = model.decoding(z_grid)
+                                save_image(output.view(64, 1, 14, 14), '{0}/sample{1}.jpg'.format(epoch_path, e))
                     
-                    # Get the training and test loss
-                    train_loss = training(converted_data[0], e)
-                    test_loss = testing(converted_data[1])
+                    if (verbosity > 0):
+                        print('Plotting Loss')
+                    # Plot the loss over epochs
+                    plt.figure(figsize=(10,10))
+                    plt.gca()
+                    plt.plot(e_list, train_loss_list, label='Training Loss')
+                    plt.plot(e_list, test_loss_list, label='Testing Loss')
+                    plt.title('Loss over the Epochs')
+                    plt.xlabel('Epoch')
+                    plt.ylabel('Loss')
+                    plt.legend()
+                    plt.savefig('{0}/loss/loss.pdf'.format(result_path))
                     
-                    if (verbosity >= 1):
-                        # Update
-                        print('\tAverage Training Loss: {1}, Test Loss: {2}\n'.format(e, round(train_loss, 3), round(test_loss[0], 3)))
+                    # Save the trained model
+                    torch.save(model, model_path)
                     
-                    # Append to plotting lists
-                    train_loss_list.append(train_loss)
-                    test_loss_list.append(test_loss[0])
-                    e_list.append(e)
+                elif ((os.path.isfile(model_path) == True) and (from_scratch == True)):
+                    if (verbosity > 0):
+                        print('Model does exist. Starting Training from scratch anyways')
+                    # Loop over the epochs
+                    for e in range(1, num_epochs+1):
+                        if (verbosity >= 0):
+                            # Update
+                            print('Epoch: {0}/{1}'.format(e, num_epochs))
+                        
+                        # Get the training and test loss
+                        train_loss = training(converted_data[0], e)
+                        test_loss = testing(converted_data[1])
+                        
+                        if (verbosity >= 1):
+                            # Update
+                            print('\tAverage Training Loss: {1}, Test Loss: {2}\n'.format(e, round(train_loss, 3), round(test_loss[0], 3)))
+                        
+                        # Append to plotting lists
+                        train_loss_list.append(train_loss)
+                        test_loss_list.append(test_loss[0])
+                        e_list.append(e)
+                        
+                        # Every 10th epoch save grid of numbers to epoch_outputs folder (for interest)
+                        if ((e % 10 == 0) or (e == 1)):
+                            if (verbosity > 0):
+                                print('Creating a sample grid of reconstructed digits for Epoch {0}'.format(e))
+                            with torch.no_grad():
+                                output = model.decoding(z_grid)
+                                save_image(output.view(64, 1, 14, 14), '{0}/sample{1}.jpg'.format(epoch_path, e))
                     
-                    # Every 10th epoch save grid of numbers to epoch_outputs folder (for interest)
-                    if ((e % 10 == 0) or (e == 1)):
-                        if (verbosity > 0):
-                            print('Creating a sample grid of reconstructed digits for Epoch {0}'.format(e))
-                        with torch.no_grad():
-                            output = model.decoding(z_grid)
-                            save_image(output.view(64, 1, 14, 14), '{0}/sample{1}.jpg'.format(epoch_path, e))
+                    if (verbosity > 0):
+                        print('Plotting Loss')
+                    # Plot the loss over epochs
+                    plt.figure(figsize=(10,10))
+                    plt.gca()
+                    plt.plot(e_list, train_loss_list, label='Training Loss')
+                    plt.plot(e_list, test_loss_list, label='Testing Loss')
+                    plt.title('Loss over the Epochs')
+                    plt.xlabel('Epoch')
+                    plt.ylabel('Loss')
+                    plt.legend()
+                    plt.savefig('{0}/loss/loss.pdf'.format(result_path))
+                    
+                    # Save the trained model
+                    torch.save(model, model_path)
                 
-                # Save the trained model
-                torch.save(model, model_path)
-                
+                model = torch.load(model_path)
                 if (verbosity > 0):
                     print('Creating {0} reconstructed images'.format(n_outputs))
                 # Now creating n images AFTER training (as set by the problem statement)
@@ -276,23 +345,10 @@ if __name__ == '__main__':
                         z_grid = torch.randn(1, 2)
                         sample = model.decoding(z_grid)
                         save_image(sample.view(1, 1, 14, 14), '{0}/{1}.pdf'.format(result_path, i))
-                        
-                if (verbosity > 0):
-                    print('Plotting Loss')
-                # Plot the loss over epochs
-                plt.figure(figsize=(10,10))
-                plt.gca()
-                plt.plot(e_list, train_loss_list, label='Training Loss')
-                plt.plot(e_list, test_loss_list, label='Testing Loss')
-                plt.title('Loss over the Epochs')
-                plt.xlabel('Epoch')
-                plt.ylabel('Loss')
-                plt.legend()
-                plt.savefig('{0}/loss/loss.pdf'.format(result_path))
                 print('Finished!')
         else:
             print('Filepath {0} does not exist'.format(json_file))
     else:
         print('Filepath {0}/data/even_mnist.csv does not exist'.format(my_absolute_dirpath))
         
-    # TODO: Maybe set up a way to run with an already trained model instead of retraining
+    # TODO: Maybe set up a way to run with an already trained model instead of retraining every time
