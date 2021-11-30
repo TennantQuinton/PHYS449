@@ -167,28 +167,38 @@ def testing(dataloader):
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 5: Tennant, Quinton (20717788)')
+    parser.add_argument('-in_file', default='data/even_mnist.csv', help='The relative path of a file containing the flattened input images')
     parser.add_argument('-json_file', default='param/parameters.json', help='The relative path of a file containing the json parameters')
-
+    parser.add_argument('-result_dir', default='final_outputs/', help='The relative path of a directory for the final outputs')
+    parser.add_argument('-epoch_dir', default='epoch_outputs/', help='The relative path of a directory for the grid of images created after each epoch. Used to see how the reconstruction improves through training')
+    parser.add_argument('-n', default='param/parameters.json', help='The relative path of a file containing the json parameters')
+    #TODO: data type inputs
     # Receiving the command line arguments
     args = parser.parse_args()
-    in_file = 'data/even_mnist.csv' #args.in_file
-    json_file = 'param/parameters.json' #args.json_file
+    in_file = args.in_file
+    json_file = args.json_file
+    result_dir = args.result_dir
+    epoch_dir = args.epoch_dir
+    n_outputs = args.n
 
     # Getting the absolute file path from the relative
     my_absolute_dirpath = os.path.abspath(os.path.dirname(__file__))
 
-    # The direct path to the json file
-    json_file = "{0}/param/parameters.json".format(my_absolute_dirpath)
+    # Getting arguments from the command line
+    in_path = '{0}/{1}'.format(my_absolute_dirpath, in_file)
+    json_path = '{0}/{1}'.format(my_absolute_dirpath, json_file)
+    result_path = '{0}/{1}'.format(my_absolute_dirpath, result_dir)
+    epoch_path = '{0}/{1}'.format(my_absolute_dirpath, epoch_dir)
     
     # Checking if the csv data file exists
-    if os.path.isfile("{0}/data/even_mnist.csv".format(my_absolute_dirpath)):
+    if os.path.isfile(in_path):
         # Reading the data from the csv file
-        data_in = pd.read_csv("{0}/data/even_mnist.csv".format(my_absolute_dirpath), delimiter=' ')
+        data_in = pd.read_csv(in_path, delimiter=' ')
 
         # Getting path and filename for output file usage
         filename = 'report'
         pathname = (((in_file).split('.')[0]).split('/'))[-2]
-        out_file = "{0}/{1}/{2}.out".format(my_absolute_dirpath, pathname, filename)
+        out_file = '{0}/{1}/{2}.out'.format(my_absolute_dirpath, pathname, filename)
 
         # Checking if our json file exists
         if os.path.isfile(json_file):
@@ -233,15 +243,14 @@ if __name__ == '__main__':
                     e_list.append(e)
                     
                     # Every 10th epoch save grid of numbers to epoch_outputs folder (for interest)
-                    if (e % 10 == 0):
+                    if ((e % 10 == 0) or (e == 1)):
                         with torch.no_grad():
                             output = model.decoding(z_grid)
-                            save_image(output.view(64, 1, 14, 14), './epoch_outputs/sample{0}.jpg'.format(e))
+                            save_image(output.view(64, 1, 14, 14), '{0}/sample{1}.jpg'.format(epoch_dir, e))
                 
                 # Now creating n images AFTER training (as set by the problem statement)
-                # TODO: change to user input n-value   
                 # TODO: change all file paths to use absolute directory and create results folder as set by assignment
-                for i in range(1, 101):
+                for i in range(1, n_outputs + 1):
                     with torch.no_grad():
                         z_grid = torch.randn(1, 2)
                         sample = model.decoding(z_grid)
