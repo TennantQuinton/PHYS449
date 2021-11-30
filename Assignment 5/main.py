@@ -193,7 +193,7 @@ if __name__ == '__main__':
     epoch_path = '{0}/{1}/{2}'.format(my_absolute_dirpath, result_dir, epoch_dir)
     model_path = '{0}/trained_model.pth'.format(my_absolute_dirpath)
     
-    # Make both output directories if they don't exist
+    # Make all output directories if they don't exist
     if (os.path.exists(result_path) == False):
         os.makedirs(result_path)
     
@@ -223,12 +223,13 @@ if __name__ == '__main__':
                 learning_rate = paras['learning rate']
                 num_epochs = paras['number of epochs']
                 batch_size = paras['batch size']
-                from_scratch = paras['from scratch']
+                run_training = paras['run training']
                 
-                if (from_scratch == 0):
-                    from_scratch = False
-                elif (from_scratch == 1):
-                    from_scratch = True
+                # Trying to set up the run_training implementation
+                if (run_training == 0): # 0 = NO (Just create the images with the pretrained model)
+                    run_training = False
+                elif (run_training == 1): # 1 = YES (Run through training whether the model exists or not)
+                    run_training = True
                 
                 # Convert the in_data
                 converted_data = conversion(data_in, testing_data_size, batch_size)
@@ -244,55 +245,13 @@ if __name__ == '__main__':
                 # and a grid for epoch outputs to see how the model improves (for interest)
                 z_grid = torch.randn(64, 2)
                 
-                if (os.path.isfile(model_path) == False):
-                    if (verbosity > 0):
-                        print('Model does not exist. Starting Training')
-                    # Loop over the epochs
-                    for e in range(1, num_epochs+1):
-                        if (verbosity >= 0):
-                            # Update
-                            print('Epoch: {0}/{1}'.format(e, num_epochs))
-                        
-                        # Get the training and test loss
-                        train_loss = training(converted_data[0], e)
-                        test_loss = testing(converted_data[1])
-                        
-                        if (verbosity >= 1):
-                            # Update
-                            print('\tAverage Training Loss: {1}, Test Loss: {2}\n'.format(e, round(train_loss, 3), round(test_loss[0], 3)))
-                        
-                        # Append to plotting lists
-                        train_loss_list.append(train_loss)
-                        test_loss_list.append(test_loss[0])
-                        e_list.append(e)
-                        
-                        # Every 10th epoch save grid of numbers to epoch_outputs folder (for interest)
-                        if ((e % 10 == 0) or (e == 1)):
-                            if (verbosity > 0):
-                                print('Creating a sample grid of reconstructed digits for Epoch {0}'.format(e))
-                            with torch.no_grad():
-                                output = model.decoding(z_grid)
-                                save_image(output.view(64, 1, 14, 14), '{0}/sample{1}.jpg'.format(epoch_path, e))
-                    
-                    if (verbosity > 0):
-                        print('Plotting Loss')
-                    # Plot the loss over epochs
-                    plt.figure(figsize=(10,10))
-                    plt.gca()
-                    plt.plot(e_list, train_loss_list, label='Training Loss')
-                    plt.plot(e_list, test_loss_list, label='Testing Loss')
-                    plt.title('Loss over the Epochs')
-                    plt.xlabel('Epoch')
-                    plt.ylabel('Loss')
-                    plt.legend()
-                    plt.savefig('{0}/loss/loss.pdf'.format(result_path))
-                    
-                    # Save the trained model
-                    torch.save(model, model_path)
-                    
-                elif ((os.path.isfile(model_path) == True) and (from_scratch == True)):
-                    if (verbosity > 0):
-                        print('Model does exist. Starting Training from scratch anyways')
+                if ((os.path.isfile(model_path) == False) or ((os.path.isfile(model_path) == True) and (run_training == True))):
+                    if (os.path.isfile(model_path) == False):
+                        if (verbosity > 0):
+                            print('Model does not exist. Starting Training')
+                    elif ((os.path.isfile(model_path) == True) and (run_training == True)):
+                        if (verbosity > 0):
+                            print('Model exists. Running through Training anyways')
                     # Loop over the epochs
                     for e in range(1, num_epochs+1):
                         if (verbosity >= 0):
