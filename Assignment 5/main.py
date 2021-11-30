@@ -190,6 +190,13 @@ if __name__ == '__main__':
     result_path = '{0}/{1}'.format(my_absolute_dirpath, result_dir)
     epoch_path = '{0}/{1}'.format(my_absolute_dirpath, epoch_dir)
     
+    # Make both output directories if they don't exist
+    if (os.path.exists(result_path) == False):
+        os.makedirs(result_path)
+    
+    if (os.path.exists(epoch_path) == False):
+        os.makedirs(epoch_path)
+    
     # Checking if the csv data file exists
     if os.path.isfile(in_path):
         # Reading the data from the csv file
@@ -246,21 +253,21 @@ if __name__ == '__main__':
                     if ((e % 10 == 0) or (e == 1)):
                         with torch.no_grad():
                             output = model.decoding(z_grid)
-                            save_image(output.view(64, 1, 14, 14), '{0}/sample{1}.jpg'.format(epoch_dir, e))
+                            save_image(output.view(64, 1, 14, 14), '{0}/sample{1}.jpg'.format(epoch_path, e))
                 
                 # Now creating n images AFTER training (as set by the problem statement)
-                # TODO: change all file paths to use absolute directory and create results folder as set by assignment
                 for i in range(1, n_outputs + 1):
                     with torch.no_grad():
                         z_grid = torch.randn(1, 2)
                         sample = model.decoding(z_grid)
-                        save_image(sample.view(1, 1, 14, 14), './final_outputs/{0}.pdf'.format(i))
+                        save_image(sample.view(1, 1, 14, 14), '{0}/{1}.pdf'.format(result_path, i))
                         
+                # TODO: More info on plot (and size)
                 # Plot the loss over epochs
                 plt.plot(e_list, train_loss_list, label='Training Loss')
                 plt.plot(e_list, test_loss_list, label='Testing Loss')
                 plt.legend()
-                plt.savefig('./final_outputs/loss.pdf')
+                plt.savefig('{0}/loss.pdf'.format(result_path))
         else:
             print('Filepath {0} does not exist'.format(json_file))
     else:
