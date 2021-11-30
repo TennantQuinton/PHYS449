@@ -123,7 +123,7 @@ def training(dataloader, epoch):
         # Epoch number
         # What data point we are out of the total
         # The loss found at this point
-        if count % 50 == 0:
+        if ((count % 50 == 0) and (verbosity >= 2)):
             print('\tImage {1}/{2}, Loss: {4}'.format(epoch, (count * len(data)), (len(dataloader.dataset)), int(round((100. * count / len(dataloader)), 0)), round((loss.item() / len(data)), 3)))
         
     # The training loss is found by dividing our loss sum by the total data length
@@ -167,19 +167,21 @@ def testing(dataloader):
 if __name__ == '__main__':
     # Command line arguments
     parser = argparse.ArgumentParser(description='Assignment 5: Tennant, Quinton (20717788)')
-    parser.add_argument('-in_file', default='data/even_mnist.csv', help='The relative path of a file containing the flattened input images')
-    parser.add_argument('-json_file', default='param/parameters.json', help='The relative path of a file containing the json parameters')
-    parser.add_argument('-result_dir', default='final_outputs/', help='The relative path of a directory for the final outputs')
-    parser.add_argument('-epoch_dir', default='epoch_outputs/', help='The relative path of a directory for the grid of images created after each epoch. Used to see how the reconstruction improves through training')
-    parser.add_argument('-n', default='param/parameters.json', help='The relative path of a file containing the json parameters')
-    #TODO: data type inputs
+    parser.add_argument('-in_file', default='data/even_mnist.csv', help='The relative path of a file containing the flattened input images. Default: data/even_mnist.csv', type=str)
+    parser.add_argument('-json_file', default='param/parameters.json', help='The relative path of a file containing the json parameters. Default: param/parameters.json', type=str)
+    parser.add_argument('-o', default='outputs/', help='The relative path of a directory for the final outputs. Default: outputs/', type=str)
+    parser.add_argument('-epoch_dir', default='epoch_outputs/', help='The relative path of a directory for the grid of images created after each epoch within the output folder. Used to see how the reconstruction improves through training. Default: epoch_outputs/', type=str)
+    parser.add_argument('-n', default=100, help='The relative path of a file containing the json parameters. Default: 100', type=int)
+    parser.add_argument('-verbosity', default=2, help='The verbosity of the python program. Default: 2', type=int)
+    
     # Receiving the command line arguments
     args = parser.parse_args()
     in_file = args.in_file
     json_file = args.json_file
-    result_dir = args.result_dir
+    result_dir = args.o
     epoch_dir = args.epoch_dir
     n_outputs = args.n
+    verbosity = args.verbosity
 
     # Getting the absolute file path from the relative
     my_absolute_dirpath = os.path.abspath(os.path.dirname(__file__))
@@ -188,7 +190,8 @@ if __name__ == '__main__':
     in_path = '{0}/{1}'.format(my_absolute_dirpath, in_file)
     json_path = '{0}/{1}'.format(my_absolute_dirpath, json_file)
     result_path = '{0}/{1}'.format(my_absolute_dirpath, result_dir)
-    epoch_path = '{0}/{1}'.format(my_absolute_dirpath, epoch_dir)
+    epoch_path = '{0}/{1}/{2}'.format(my_absolute_dirpath, result_dir, epoch_dir)
+    model_path = '{0}/trained_model.pth'.format(my_absolute_dirpath)
     
     # Make both output directories if they don't exist
     if (os.path.exists(result_path) == False):
@@ -234,15 +237,17 @@ if __name__ == '__main__':
                 
                 # Loop over the epochs
                 for e in range(1, num_epochs+1):
-                    # Update
-                    print('Epoch: {0}/{1}'.format(e, num_epochs))
+                    if (verbosity >= 0):
+                        # Update
+                        print('Epoch: {0}/{1}'.format(e, num_epochs))
                     
                     # Get the training and test loss
                     train_loss = training(converted_data[0], e)
                     test_loss = testing(converted_data[1])
                     
-                    # Update
-                    print('\tAverage Training Loss: {1}, Test Loss: {2}\n'.format(e, round(train_loss, 3), round(test_loss[0], 3)))
+                    if (verbosity >= 1):
+                        # Update
+                        print('\tAverage Training Loss: {1}, Test Loss: {2}\n'.format(e, round(train_loss, 3), round(test_loss[0], 3)))
                     
                     # Append to plotting lists
                     train_loss_list.append(train_loss)
@@ -255,6 +260,9 @@ if __name__ == '__main__':
                             output = model.decoding(z_grid)
                             save_image(output.view(64, 1, 14, 14), '{0}/sample{1}.jpg'.format(epoch_path, e))
                 
+                # Save the trained model
+                torch.save(model, model_path)
+                
                 # Now creating n images AFTER training (as set by the problem statement)
                 for i in range(1, n_outputs + 1):
                     with torch.no_grad():
@@ -262,13 +270,20 @@ if __name__ == '__main__':
                         sample = model.decoding(z_grid)
                         save_image(sample.view(1, 1, 14, 14), '{0}/{1}.pdf'.format(result_path, i))
                         
-                # TODO: More info on plot (and size)
+                        
                 # Plot the loss over epochs
+                plt.figure(figsize=(10,10))
+                plt.gca()
                 plt.plot(e_list, train_loss_list, label='Training Loss')
                 plt.plot(e_list, test_loss_list, label='Testing Loss')
+                plt.title('Loss over the Epochs')
+                plt.xlabel('Epoch')
+                plt.ylabel('Loss')
                 plt.legend()
                 plt.savefig('{0}/loss.pdf'.format(result_path))
         else:
             print('Filepath {0} does not exist'.format(json_file))
     else:
         print('Filepath {0}/data/even_mnist.csv does not exist'.format(my_absolute_dirpath))
+        
+    # TODO: README
