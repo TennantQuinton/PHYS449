@@ -6,6 +6,7 @@ Assignment 5
 '''
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt, pandas as pd
 import torch, torch.nn as nn, torch.optim as optim, torchvision, torchvision.transforms as transforms, torch.nn.functional as F
+from torchvision.utils import make_grid
 import random
 
 class var_aenc(nn.Module):
@@ -174,6 +175,8 @@ if __name__ == '__main__':
                     
                     train_loss.append(training_loss)
                     test_loss.append(testing_loss)
+                    print('Epoch {0}/{1}'.format(e, num_epochs))
+                    print('Training Loss: {0}, Testing Loss: {1}'.format(training_loss, testing_loss))
         else:
             print('Filepath {0} does not exist'.format(json_file))
     else:
