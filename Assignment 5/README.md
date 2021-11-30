@@ -23,7 +23,7 @@
 - 'batch_size': The batch size used in each training run
 - 'learning rate': The learning rate for the model
 - 'number of epochs': The number of epochs run through by training
-- 'from scratch': Experimental implementation. Can be set to 1 (yes) or 0 (no) to set if we want to start from scratch. If set to no and the saved PyTorch model exists in the proper location then it will just create 100 pdf digit images from the pretrained model. If set to yes then the program will run through training again.
+- 'run training': Experimental implementation. Can be set to 1 (yes) or 0 (no) to set if we want to run through training. If set to no and the saved PyTorch model exists in the proper location then it will just create 100 pdf digit images from the pretrained model. If set to yes then the program will run through training whether the model exists or not.
 
 ## Running `main.py`
 
