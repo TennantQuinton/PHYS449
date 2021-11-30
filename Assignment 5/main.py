@@ -199,6 +199,9 @@ if __name__ == '__main__':
     
     if (os.path.exists(epoch_path) == False):
         os.makedirs(epoch_path)
+        
+    if (os.path.exists('{0}/loss/'.format(result_path)) == False):
+        os.makedirs('{0}/loss/'.format(result_path))
     
     # Checking if the csv data file exists
     if os.path.isfile(in_path):
@@ -256,6 +259,8 @@ if __name__ == '__main__':
                     
                     # Every 10th epoch save grid of numbers to epoch_outputs folder (for interest)
                     if ((e % 10 == 0) or (e == 1)):
+                        if (verbosity > 0):
+                            print('Creating a sample grid of reconstructed digits for Epoch {0}'.format(e))
                         with torch.no_grad():
                             output = model.decoding(z_grid)
                             save_image(output.view(64, 1, 14, 14), '{0}/sample{1}.jpg'.format(epoch_path, e))
@@ -263,6 +268,8 @@ if __name__ == '__main__':
                 # Save the trained model
                 torch.save(model, model_path)
                 
+                if (verbosity > 0):
+                    print('Creating {0} reconstructed images'.format(n_outputs))
                 # Now creating n images AFTER training (as set by the problem statement)
                 for i in range(1, n_outputs + 1):
                     with torch.no_grad():
@@ -270,7 +277,8 @@ if __name__ == '__main__':
                         sample = model.decoding(z_grid)
                         save_image(sample.view(1, 1, 14, 14), '{0}/{1}.pdf'.format(result_path, i))
                         
-                        
+                if (verbosity > 0):
+                    print('Plotting Loss')
                 # Plot the loss over epochs
                 plt.figure(figsize=(10,10))
                 plt.gca()
@@ -280,10 +288,11 @@ if __name__ == '__main__':
                 plt.xlabel('Epoch')
                 plt.ylabel('Loss')
                 plt.legend()
-                plt.savefig('{0}/loss.pdf'.format(result_path))
+                plt.savefig('{0}/loss/loss.pdf'.format(result_path))
+                print('Finished!')
         else:
             print('Filepath {0} does not exist'.format(json_file))
     else:
         print('Filepath {0}/data/even_mnist.csv does not exist'.format(my_absolute_dirpath))
         
-    # TODO: README
+    # TODO: Maybe set up a way to run with an already trained model instead of retraining
