@@ -1,5 +1,5 @@
 {
-    "testing data size": 3000,
+    "testing data size": 4490,
 	"batch size": 100,
     "learning rate": 0.001,
     "number of epochs": 100
