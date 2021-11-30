@@ -27,8 +27,6 @@ class var_aenc(nn.Module):
         pass
 
 def conversion(input_data, test_size, batch_size):
-    test_size = test_size
-    batch_size = batch_size
     # Training data split (take the first 26492 digits) in Pandas df format
     training = (input_data[0:-test_size-1])
     training_data = training[training.columns[:-1]]
@@ -154,13 +152,28 @@ if __name__ == '__main__':
                 # Getting parameters from json
                 paras = json.load(file)
                 testing_data_size = paras['testing data size']
-                batch_size = paras['batch size']
                 input_size = paras['input length']
                 hidden_layer_size = paras['hidden layer size']
                 output_size = paras['output size']
+                
                 learning_rate = paras['learning rate']
                 num_epochs = paras['number of epochs']
-            
+                batch_size = paras['batch size']
+                
+                converted_data = conversion(data_in, testing_data_size, batch_size)
+                
+                model = var_aenc()
+                optimz = optim.Adam(model.parameters(), learning_rate)
+                loss_f = nn.BCELoss(reduction='sum')
+                
+                train_loss = []
+                test_loss = []
+                for e in range(num_epochs):
+                    training_loss = training(model, optimz, loss_f, converted_data[0])
+                    testing_loss = testing(model, optimz, loss_f, converted_data[1])
+                    
+                    train_loss.append(training_loss)
+                    test_loss.append(testing_loss)
         else:
             print('Filepath {0} does not exist'.format(json_file))
     else:
