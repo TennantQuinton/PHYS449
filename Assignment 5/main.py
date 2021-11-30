@@ -7,25 +7,48 @@ Assignment 5
 import os, json, argparse, numpy as np, matplotlib.pyplot as plt, pandas as pd
 import torch, torch.nn as nn, torch.optim as optim, torchvision, torchvision.transforms as transforms, torch.nn.functional as F
 from torchvision.utils import make_grid
+from torch.utils.data import TensorDataset
+from torch.utils.data import DataLoader
 import random
 
+kernel_size = 2 # (4, 4) kernel
+init_channels = 8 # initial number of filters
+image_channels = 1 # MNIST images are grayscale
+latent_dim = 16 # latent dimension for sampling
+
 class var_aenc(nn.Module):
-    def __init__(self):
+    def __init__(self, in_size, h_size1, h_size2, mv_size):
         super(var_aenc, self).__init__()
         
         # ENCODER
+        self.encode1 = nn.Linear(in_size, h_size1)
+        self.encode2 = nn.Linear(h_size1, h_size2)
         
-        # FULLY-CONNECTED LAYERS
+        # MEAN/VAR LAYERS
+        self.fc_mu = nn.Linear(h_size2, mv_size)
+        self.fc_var = nn.Linear(h_size2, mv_size)
         
         # DECODER
-        
+        self.decode1 = nn.Linear(mv_size, h_size2)
+        self.decode2 = nn.Linear(h_size2, h_size1)
+        self.decode3 = nn.Linear(h_size1, in_size)
+    
+    def encoding(self, x):
+        z = F.relu(self.encode1(x))
+        z = F.relu(self.encode2(z))
+        return self.fc_mu(z), self.fc_var(z)
+    
+    def decoding(self, x):
+        z = F.relu(self.decode1(x))
+        z = F.relu(self.decode2(z))
+        return F.sigmoid(self.decode3(z))
+    
     def forward(self, x):
-        # Run through encoding
-        
-        # Learn what we can from the encoded data
-        
-        # Run through decoding
-        pass
+        mu, lvar = self.encoding(x.view(-1, 196))
+        std = torch.exp((1/2)*lvar)
+        eps = torch.randn_like(std)
+        z = mu + (std * eps)    # Sampling
+        return self.decoding(z), mu, lvar
 
 def conversion(input_data, test_size, batch_size):
     # Training data split (take the first 26492 digits) in Pandas df format
@@ -62,12 +85,12 @@ def conversion(input_data, test_size, batch_size):
     testing_labels_tens = torch.tensor(testing_labels)
 
     # Convert to tensor with both data and labels. Then load the data
-    training_tensor = torch.utils.data.TensorDataset(training_data_tens, training_labels_tens)
-    testing_tensor = torch.utils.data.TensorDataset(testing_data_tens, testing_labels_tens)
-    load_training = torch.utils.data.DataLoader(training_tensor, batch_size = batch_size, shuffle = True)
-    load_testing = torch.utils.data.DataLoader(testing_tensor, batch_size = batch_size, shuffle = True)
-    # print(training_data_tens)
-    # print(type(training_data_tens[0][0][0][0].item()))
+    training_tensor = TensorDataset(training_data_tens, training_labels_tens)
+    testing_tensor = TensorDataset(testing_data_tens, testing_labels_tens)
+    # print(training_tensor.tensors[0].shape)
+    # quit()
+    load_training = DataLoader(training_tensor, batch_size = batch_size, shuffle = True)
+    load_testing = DataLoader(testing_tensor, batch_size = batch_size, shuffle = True)
 
     return (load_training, load_testing)
 
@@ -76,26 +99,33 @@ def KL_Div(logvar, mu):
     return -0.5 * torch.sum(1 + logvar - mu**2 - np.exp(logvar))
 
 # Training loop function
-def training(model, optimizer, loss_f, dataloader):    
+def training(loss_f, dataloader, epoch):    
     model.train()
     loss_total = 0
     count = 0
     
     for data in dataloader:
         data = data[0]
-        optimizer.zero_grad()
+        optimz.zero_grad()
+        
         rec, mu, logvar = model(data)
         BCE_loss = loss_f(rec, data)
         loss = BCE_loss + KL_Div(logvar, mu)
         loss.backward()
+        
         loss_total += loss.item()
-        optimizer.step()
+        optimz.step()
         count+=1
         
-    train_loss = loss_total/count
-    return train_loss
+        if count % 100 == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                epoch, count * len(data), len(dataloader.dataset),
+                100. * count / len(dataloader), loss.item() / len(data)))
+            
+    print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, loss_total / count))
+    return loss_total/count
 
-def testing(model, optimizer, loss_f, dataloader):
+def testing(loss_f, dataloader):
     model.eval()
     loss_total = 0
     count = 0
@@ -104,14 +134,16 @@ def testing(model, optimizer, loss_f, dataloader):
         for data in dataloader:
             data = data[0]
             rec, mu, logvar = model(data)
+            
             BCE_loss = loss_f(rec, data)
             loss = BCE_loss + KL_Div(logvar, mu)
             loss_total += loss.item()
             
             image = rec
             count += 1
-            
+    
     test_loss = loss_total/count
+    print('====> Test set loss: {:.4f}'.format(test_loss))
     return test_loss, image
         
     
@@ -163,20 +195,22 @@ if __name__ == '__main__':
                 
                 converted_data = conversion(data_in, testing_data_size, batch_size)
                 
-                model = var_aenc()
+                model = var_aenc(196, 256, 128, 2)
                 optimz = optim.Adam(model.parameters(), learning_rate)
                 loss_f = nn.BCELoss(reduction='sum')
                 
                 train_loss = []
                 test_loss = []
                 for e in range(num_epochs):
-                    training_loss = training(model, optimz, loss_f, converted_data[0])
-                    testing_loss = testing(model, optimz, loss_f, converted_data[1])
+                    training(loss_f, converted_data[0], e)
+                    testing(loss_f, converted_data[1])
+                    # training_loss = training(model, optimz, loss_f, converted_data[0])
+                    # testing_loss = testing(model, loss_f, converted_data[1])
                     
-                    train_loss.append(training_loss)
-                    test_loss.append(testing_loss)
-                    print('Epoch {0}/{1}'.format(e, num_epochs))
-                    print('Training Loss: {0}, Testing Loss: {1}'.format(training_loss, testing_loss))
+                    # train_loss.append(training_loss)
+                    # test_loss.append(testing_loss)
+                    # print('Epoch {0}/{1}'.format(e, num_epochs))
+                    # print('Training Loss: {0}, Testing Loss: {1}'.format(training_loss, testing_loss))
         else:
             print('Filepath {0} does not exist'.format(json_file))
     else:
