@@ -2,5 +2,6 @@
     "testing data size": 4490,
 	"batch size": 100,
     "learning rate": 0.001,
-    "number of epochs": 100
+    "number of epochs": 100,
+    "from scratch": 1
 }
