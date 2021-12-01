@@ -11,7 +11,6 @@ import torch, torch.nn as nn, torch.optim as optim, torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
 from torchvision.utils import save_image
 
-# TODO: Change to convolutional layers instead of linear
 # Class used for defining our model
 class var_aenc(nn.Module):
     def __init__(self, in_size, h_size1, h_size2, mv_size):
@@ -238,6 +237,7 @@ if __name__ == '__main__':
                 # Set the model and optimizer
                 model = var_aenc(196, 128, 64, 2)
                 optimz = optim.Adam(model.parameters(), learning_rate)
+                
                 
                 # Initialize the lists for plotting
                 train_loss_list = []
