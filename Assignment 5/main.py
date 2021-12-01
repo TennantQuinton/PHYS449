@@ -310,5 +310,3 @@ if __name__ == '__main__':
             print('Filepath {0} does not exist'.format(json_file))
     else:
         print('Filepath {0}/data/even_mnist.csv does not exist'.format(my_absolute_dirpath))
-        
-    # TODO: Maybe set up a way to run with an already trained model instead of retraining every time
